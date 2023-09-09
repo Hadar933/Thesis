@@ -1,0 +1,15 @@
+numpy
+pandas
+torch
+matplotlib
+opencv-python
+scipy
+imageio
+tqdm
+plotly
+loguru
+plotly-resampler
+torchinfo
+psutil
+deprecated
+tensorboard
