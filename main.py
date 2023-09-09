@@ -25,3 +25,4 @@ if __name__ == '__main__':
     trainer = ML.main.init_trainer(angles_tensor, forces_tensor)
     trainer.fit()
     trainer.predict()
+    z = 2
