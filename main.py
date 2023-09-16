@@ -1,3 +1,4 @@
+import os.path
 import torch
 
 import Camera.main
@@ -7,22 +8,29 @@ import Preprocess.preprocess
 import ML.main
 
 if __name__ == '__main__':
-    # (!) make sure to first run calib.m for the calibration matrices
-    exp_time = '22_08_2023'
-    camera_freq = 10_000
-    force_freq = 5_000
-    angles_df = Camera.main.get_angles(exp_time, use_hard_drive=False, show_tracker=False, show_results=False)
-    forces_df = Forces.main.get_forces(exp_time, show_results=False)
-    df = Preprocess.trigger.merge_data(exp_time,
-                                       angles_df, forces_df,
-                                       f"{1 / camera_freq}S", f"{1 / force_freq}S",
-                                       0.01, 0.1)
-    df = Preprocess.preprocess.interpolate(df)
-    df = Preprocess.preprocess.resample(df)
 
-    angles_tensor = torch.tensor(df[['theta', 'phi', 'psi']].values).repeat(100, 1, 1)
-    forces_tensor = torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values).repeat(100, 1, 1)
-    trainer = ML.main.init_trainer(angles_tensor, forces_tensor)
+    # (!) make sure to first run calib.m for the calibration matrices
+    camera_freq: str = f"{1 / 10_000}S"
+    force_freq: str = f"{1 / 5_000}S"
+    camera_start_threshold: float = 0.01
+    forces_start_threshold: float = 0.1
+    angles: list[torch.Tensor] = []
+    forces: list[torch.Tensor] = []
+
+    for exp_time in ['22_08_2023']:
+        assert all(os.path.exists(f"Camera\\calibrations\\{exp_time}\\cameraMatrix{i}.mat") for i in
+                   [1, 2]), 'run calib.m first!'
+
+        angles_df = Camera.main.get_angles(exp_time, use_hard_drive=False, show_tracker=False, show_results=False)
+        forces_df = Forces.main.get_forces(exp_time, show_results=False)
+        df = Preprocess.trigger.merge_data(exp_time, angles_df, forces_df, camera_freq, force_freq,
+                                           camera_start_threshold, forces_start_threshold)
+        df = Preprocess.preprocess.interpolate(df)
+        df = Preprocess.preprocess.resample(df)
+
+        angles.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
+        forces.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
+
+    trainer = ML.main.init_trainer(forces=torch.stack(forces), kinematics=torch.stack(angles))
     trainer.fit()
     trainer.predict()
-    z = 2
