@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 def read_forces_csv(
         csv_filename: str,
-        header_row_count: int = 21
+        header_row_count: int
 ) -> Tuple[pd.DataFrame, Dict[str, List]]:
     """
     reads the csv_filename and extracts the header information alongside a forces dataframe

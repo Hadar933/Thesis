@@ -1,4 +1,4 @@
-from typing import Union, Optional, Literal
+from typing import Union, Optional
 import matplotlib.pyplot as plt
 from Camera import camera_gui
 import os
@@ -9,6 +9,7 @@ import matplotlib as mpl
 import numpy as np
 import scipy
 from pathlib import Path
+import re
 
 
 # ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -79,9 +80,19 @@ def crop_directory(camera_dirname, dirname_to_crop, cropped_dirname, y, x, h, w)
 def get_crop_params(
         images_path: str,
         crop_params_filename: str,
-        first_image_name: str
+        first_image_name: str,
 ):
-    """ similar to handle cropping but with simpler filenames and no crop directory """
+    """
+    Loads the global cropping obtained from the PCC camera app and adds another user
+    cropping if desired.
+    when using the .crop function, and only app cropping, the dimensions of the image will stay
+    the same. If user cropping is used on top, the image will be cropped to these dimensions
+    @:param app_cropping_path: camera image configurations .adj file
+    :param images_path:
+    :param crop_params_filename: a string for
+    :param first_image_name:
+    :return:
+    """
     parent_dir = Path(images_path).parent
     if crop_params_filename in os.listdir(parent_dir):
         with open(os.path.join(parent_dir, crop_params_filename), 'rb') as f:
@@ -93,19 +104,36 @@ def get_crop_params(
     return y, x, h, w
 
 
+def _extract_camera_crop_params(adj_file):
+    with open(adj_file, 'rb') as f:
+        content = f.read()
+    y = int(re.search(rb'<CropRectangleY>(\d+)</CropRectangleY>', content).group(1))
+    x = int(re.search(rb'<CropRectangleX>(\d+)</CropRectangleX>', content).group(1))
+    h = int(re.search(rb'<CropRectangleHeight>(\d+)</CropRectangleHeight>', content).group(1))
+    w = int(re.search(rb'<CropRectangleWidth>(\d+)</CropRectangleWidth>', content).group(1))
+    return x, y, w, h
+
+
 def shift_image_based_on_crop(
         points_2d: np.ndarray,
-        crop_params_path: str
+        crop_params_path: str,
+        cam_cropping_file: str,
+        add_manual_crop: bool
 ):
     """
     when cropping images, the origin is shifted. we undo this process using the crop params
     :param points_2d: an array of points, that can be either (n_traj, m_points_per_traj, 2) or (m_points,2)
     :param crop_params_path: path to the crop parameters pickle
+    :param cam_cropping_file: the adj file from the PCC camera app
+    :param add_manual_crop: if true, applies the user crop fix as well
     :return: points_2d, shifted
     """
-    with open(crop_params_path, 'rb') as f:
-        y0, x0, h, w = pickle.load(f)
-    points_2d += np.array([x0, y0])
+    y_cam, x_cam, w_cam, h_cam = _extract_camera_crop_params(cam_cropping_file)
+    points_2d += np.array([x_cam, y_cam])
+    if add_manual_crop:
+        with open(crop_params_path, 'rb') as f:
+            y_user, x_user, h_user, w_user = pickle.load(f)
+        points_2d += np.array([x_user, y_user])
     return points_2d
 
 
@@ -179,20 +207,21 @@ def plot_trajectories(
     plt.show()
 
 
-def plot_angles(angles: np.ndarray, camera_freq: Optional[int] = None, convert2deg: bool = True):
+def plot_angles(angles: np.ndarray, n_samples: Optional[int] = None, convert2deg: bool = True):
     """
     plots the wing angles in one plot
     :param angles: (m_points,3) for [theta,phi,psi]
     """
-    if convert2deg: angles = np.degrees(angles)
+    if convert2deg:
+        angles = np.degrees(angles)
     num_samples = angles.shape[-1]
     for i, label in enumerate([r'$\theta$ elevation', r'$\phi$ stroke', r'$\psi$ pitch']):
-        if camera_freq:
-            plt.plot(np.arange(0, num_samples) / camera_freq, angles[i], label=label)
+        if n_samples:
+            plt.plot(np.arange(0, num_samples) / n_samples, angles[i], label=label)
         else:
             plt.plot(angles[i], label=label)
     plt.title('Wing Angles')
-    plt.xlabel('time [sec]' if camera_freq else 'frame [#]'), plt.ylabel(f"angle [{'deg' if convert2deg else 'rad'}]")
+    plt.xlabel('time [sec]' if n_samples else 'frame [#]'), plt.ylabel(f"angle [{'deg' if convert2deg else 'rad'}]")
     plt.legend(), plt.grid(), plt.show()
 
 

@@ -122,10 +122,12 @@ class OpticalFlow:
     def run(
             self,
             camera_dirname: str,
-            crop_params_filename='crop_params.pkl',
-            first_image_name='Img000000.jpg',
-            photos_sub_dirname='photos',
-            **kwargs
+            tracking_params: dict,
+            crop_params_filename: str,
+            first_image_name: str,
+            photos_sub_dirname: str,
+            add_manual_crop: bool,
+
     ) -> np.ndarray:
         """
         tracks points of interest using optical flow
@@ -135,14 +137,17 @@ class OpticalFlow:
         :param photos_sub_dirname: the name of the directory that contains the images for the current camera
         :return: a np array that represents all trajectories, with shape [n_trajs,n_points_per_traj, 2 (x,y)]
         """
-        logger.info(f'Running optical flow on {camera_dirname}...')
-        images_path = os.path.join(camera_dirname, photos_sub_dirname)
-        y, x, h, w = camera_utils.get_crop_params(images_path, crop_params_filename, first_image_name)
 
-        frame = camera_utils.crop(cv2.imread(os.path.join(images_path, first_image_name)), y, x, h, w)
+        images_path = os.path.join(camera_dirname, photos_sub_dirname)
+        logger.info(f'Calculating Trajectory using optical flow on {images_path}...')
+        frame = cv2.imread(os.path.join(images_path, first_image_name))
+
+        if add_manual_crop:
+            y, x, h, w = camera_utils.get_crop_params(images_path, crop_params_filename, first_image_name)
+            frame = camera_utils.crop(frame, y, x, h, w)
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        prev_pts = self._calc_first_trajectory_points(gray_frame, **kwargs)
+        prev_pts = self._calc_first_trajectory_points(gray_frame, tracking_params)
 
         trajectories = prev_pts.copy()  # [n_trajs,n_points_per_traj, 2 (x,y)]
         mask = np.zeros_like(frame)  # Create a mask image for drawing purposes
@@ -158,17 +163,21 @@ class OpticalFlow:
             out = cv2.VideoWriter(video_output, fourcc, fps, frame_size)
 
         for image_name in tqdm(all_images[1:], total=len(all_images) - 1):
-            frame = camera_utils.crop(cv2.imread(os.path.join(images_path, image_name)), y, x, h, w)
+            frame = cv2.imread(os.path.join(images_path, image_name))
+            if add_manual_crop:
+                frame = camera_utils.crop(frame, y, x, h, w)
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             if gray_frame is None:
                 break
             next_pts, status, error = cv2.calcOpticalFlowPyrLK(old_gray_frame, gray_frame, prev_pts, None,
-                                                               winSize=kwargs['winSize'], maxLevel=kwargs['maxLevel'],
-                                                               criteria=kwargs['criteria'])
+                                                               winSize=tracking_params['winSize'],
+                                                               maxLevel=tracking_params['maxLevel'],
+                                                               criteria=tracking_params['criteria'])
             if next_pts is not None:  # select good points
                 good_next_pts = next_pts[status == 1]
                 good_prev_pts = prev_pts[status == 1]
                 trajectories = np.append(trajectories, good_next_pts[:, np.newaxis, :], axis=1)
+
             if self.verbose:
                 for i, (new, old) in enumerate(zip(good_next_pts, good_prev_pts)):
                     x_new, y_new = new.ravel()
@@ -187,29 +196,31 @@ class OpticalFlow:
         if self.verbose:
             out.release()
             cv2.destroyAllWindows()
+
         return trajectories
 
     def _calc_first_trajectory_points(
             self,
             first_frame: np.ndarray,
-            **kwargs
+            tracking_params
     ) -> np.ndarray:
         """
         calculates the first points on which optical flow will be executed. support few approaches, as described under
         self.poi_alg.
         :param first_frame: the first frame, from which feature points are extracted
-        :param kwargs: contains relevant parameters for features tracking / blobs tracking
+        :param tracking_params: contains relevant parameters for features tracking / blobs tracking
         :return: the first point of interest (n_trajectories = n_points, 1, 2 = x,y)
         """
         if self.poi_alg == 'gui':
             p0 = camera_gui.select_points(first_frame)
         elif self.poi_alg == 'blobs':
-            blob_detector = NaiveBlobFinder(kwargs['NumBlobs'], **kwargs)
+            blob_detector = NaiveBlobFinder(tracking_params['NumBlobs'], **tracking_params)
             blobs = blob_detector.run(first_frame, self.verbose)
             p0 = np.round(np.array([b.pt for b in blobs]).reshape((len(blobs), 1, 2))).astype(np.float32)
         elif self.poi_alg == 'features':
-            feature_params = dict(maxCorners=kwargs['maxCorners'], qualityLevel=kwargs['qualityLevel'],
-                                  minDistance=kwargs['minDistance'], blockSize=kwargs['blockSize'])
+            feature_params = dict(maxCorners=tracking_params['maxCorners'],
+                                  qualityLevel=tracking_params['qualityLevel'],
+                                  minDistance=tracking_params['minDistance'], blockSize=tracking_params['blockSize'])
             p0 = cv2.goodFeaturesToTrack(first_frame, mask=None, **feature_params)
         else:
             raise ValueError(f"Unsupported choice {self.poi_alg}. Use either 'gui', 'blobs' or 'features'")

@@ -6,34 +6,66 @@ import pandas as pd
 from Camera import to_3d, camera_utils, tracker
 
 
-def get_angles(date: str, use_hard_drive=True, show_tracker=False, show_results=False):
-    optic_flow = tracker.OpticalFlow('blobs', show_tracker)
+def get_angles(
+        exp_date: str,
+        parent_dirname,
+        crop_params_filename,
+        photos_sub_dirname: str,
+        first_image_name,
+        tracking_params,
+        add_manual_crop,
+        show_wing_tracker,
+        show_angle_results
+) -> tuple[np.ndarray, np.ndarray]:
+    """
 
-    params = {'NumBlobs': 3, 'minArea': 100, 'winSize': (15, 15), 'maxLevel': 2,
-              'criteria': (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
+    :param exp_date: experiment execution time dd-mm-yy, used as parent dirname
+    :param photos_sub_dirname: a sub-dirname for every experiment
+    :param use_hard_drive: if true, uses data from external hard drive
+    :param show_wing_tracker: for optical flow visualizations
+    :param show_angle_results: mostly for debugging
+    :return: The tuple of two np arrays (angles, trajectory_3d)
+    """
+    proj1_path = f"Camera\\calibrations\\{exp_date}\\cameraMatrix1.mat"
+    proj2_path = f"Camera\\calibrations\\{exp_date}\\cameraMatrix2.mat"
+    camera_numbers = [2, 3]
 
-    photos_sub_dirname = 'photos'
-    crop_params_filename = 'crop_params.pkl'
-    trajectory_path = f"Camera\\experiments\\{date}\\trajectory.npy"
+    optic_flow = tracker.OpticalFlow('blobs', show_wing_tracker)
+    trajectories_2d_dict = {cam_num: None for cam_num in camera_numbers}
 
-    trajectories = {'cam2': None, 'cam3': None}
-    if not os.path.exists(trajectory_path):
-        for cam in ['cam2', 'cam3']:
-            camera_dirname = f"D:\\Hadar\\experiments\\{date}\\{cam}" if use_hard_drive else f'experiments\\{date}\\{cam}'
-            cam_crop_params = f"{camera_dirname}\\{crop_params_filename}"
-            trajectory = optic_flow.run(camera_dirname, photos_sub_dirname=photos_sub_dirname, **params)
-            trajectory = camera_utils.shift_image_based_on_crop(trajectory, cam_crop_params)
-            trajectories[cam] = trajectory
+    for cam_num in camera_numbers:
+        curr_path = f"{parent_dirname if parent_dirname else 'Camera'}\\experiments\\{exp_date}"
+        camera_dirname = f"{curr_path}\\cam{cam_num}"
+        crop_params_path = f"{camera_dirname}\\{crop_params_filename}"
+        cam_cropping_file = f"{curr_path}\\preset_2030{cam_num}.adj"
 
-        proj1_path = f"Camera\\calibrations\\{date}\\cameraMatrix1.mat"
-        proj2_path = f"Camear\\calibrations\\{date}\\cameraMatrix2.mat"
+        trajectory_2d = optic_flow.run(
+            camera_dirname=camera_dirname,
+            tracking_params=tracking_params,
+            crop_params_filename=crop_params_filename,
+            first_image_name=first_image_name,
+            photos_sub_dirname=photos_sub_dirname,
+            add_manual_crop=add_manual_crop
+        )
+        trajectory_2d = camera_utils.shift_image_based_on_crop(
+            points_2d=trajectory_2d,
+            crop_params_path=crop_params_path,
+            cam_cropping_file=cam_cropping_file,
+            add_manual_crop=add_manual_crop
+        )
+        trajectories_2d_dict[cam_num] = trajectory_2d
 
-        trajectory_3d = to_3d.triangulate(proj1_path, proj2_path, trajectories['cam2'], trajectories['cam3'])
-        np.save(trajectory_path, trajectory_3d)
-    else:
-        trajectory_3d = np.load(trajectory_path)
-    angles = to_3d.xyz2euler(trajectory_3d)
-    if show_results:
+    trajectory_3d = to_3d.triangulate(
+        proj_mat1_path=proj1_path,
+        proj_mat2_path=proj2_path,
+        points1=trajectories_2d_dict[camera_numbers[0]],
+        points2=trajectories_2d_dict[camera_numbers[1]]
+    )
+    angles = to_3d.xyz2euler(
+        trajectories_3d=trajectory_3d
+    )
+    if show_angle_results:
         camera_utils.plot_trajectories(trajectory_3d, wing_plane_jmp=100)
-        camera_utils.plot_angles(angles, camera_freq=10_000)
-    return pd.DataFrame(angles.T, columns=['theta', 'phi', 'psi'])
+        camera_utils.plot_angles(angles, n_samples=10_000)
+
+    return angles, trajectory_3d
