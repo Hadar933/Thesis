@@ -18,15 +18,14 @@ def find_force_start(threshold, force_df, verbose=False):
     return start
 
 
-def find_camera_start_based_on_points(threshold, trajectory_3d):
+def find_camera_start_based_on_trajectory(threshold, trajectory_3d):
     for t in range(trajectory_3d.shape[1] - 1):
         p0curr, p1curr, p2curr = trajectory_3d[0, t, :], trajectory_3d[1, t, :], trajectory_3d[2, t, :]
         p0next, p1next, p2next = trajectory_3d[0, t + 1, :], trajectory_3d[1, t + 1, :], trajectory_3d[2, t + 1, :]
         dist1, dist2, dist3 = norm(p0next - p0curr), norm(p1next - p1curr), norm(p2next - p2curr)
         if dist1 > threshold or dist2 > threshold or dist3 > threshold:
-            print(f"Start frame: {t}")
             return t
-    raise ValueError('Did not find start...')
+    raise ValueError('Did not find camera start...')
 
 
 def find_camera_start_based_on_images(images_path, tracking_params, threshold=150.0, verbose=True):
@@ -38,6 +37,7 @@ def find_camera_start_based_on_images(images_path, tracking_params, threshold=15
     blobs = blob_detector.run(prev_image, verbose=verbose)
     p0 = np.array([[*b.pt, b.size / 2] for b in blobs])
     plot_every_n = 500
+
     def get_region_avg_diff(img1, img2, x, y, radius):
         region1 = img1[int(y - radius):int(y + radius) + 1, int(x - radius):int(x + radius) + 1]
         region2 = img2[int(y - radius):int(y + radius) + 1, int(x - radius):int(x + radius) + 1]
@@ -84,14 +84,19 @@ def find_camera_start_based_on_images(images_path, tracking_params, threshold=15
     return None  # No motion detected
 
 
-def plot_start(start, df) -> None:
-    df.plot()
-    plt.axvline(start, color='black', linestyle='--')
-    plt.text(x=0.8 * start, y=0.9 * df.max().max(), s='Start')
+def plot_start(camera_start, forces_start, camera_df, forces_df) -> None:
+    ax = camera_df.plot()
+    plt.axvline(camera_start, color='red', linestyle='--')
+    plt.text(x=0.8 * camera_start, y=0.9 * camera_df.max().max(), s='Camera\n start')
+
+    forces_df.plot(ax=ax)
+    plt.axvline(forces_start, color='blue', linestyle='--')
+    plt.text(x=0.8 * forces_start, y=0.9 * forces_df.max().max(), s='Forces\n start')
+
     plt.show()
 
 
-def calc_start_of_experiment(force_start, camera_start, force_sample_freq, camera_sample_freq, force_df, angles_df):
+def trim_and_join(force_start, camera_start, force_sample_freq, camera_sample_freq, force_df, angles_df):
     angles_df = angles_df[camera_start:]
     angles_df.index = pd.timedelta_range(start='0', periods=len(angles_df), freq=camera_sample_freq)
     force_df = force_df[force_start:]
@@ -100,21 +105,20 @@ def calc_start_of_experiment(force_start, camera_start, force_sample_freq, camer
 
 
 def merge_data(
-        parent_dirname: str,
-        exp_date: str,
+        trajectory_3d,
         angles_df: pd.DataFrame,
         forces_df: pd.DataFrame,
         camera_freq, force_freq,
         camera_threshold,
-        force_threshold
+        force_threshold,
+        show_start_indicators
 ):
-    trajectory_path = f"{parent_dirname if parent_dirname else 'Camera'}\\experiments\\{exp_date}\\trajectory.npy"
-    trajectory_3d = np.load(trajectory_path)
-
-    camera_start = find_camera_start_based_on_points(camera_threshold, trajectory_3d)
+    camera_start = find_camera_start_based_on_trajectory(camera_threshold, trajectory_3d)
     forces_start = find_force_start(force_threshold, forces_df)
-    angles_df, forces_df = calc_start_of_experiment(forces_start, camera_start, force_freq, camera_freq, forces_df,
-                                                    angles_df)
+    if show_start_indicators:
+        plot_start(camera_start, forces_start, angles_df, forces_df)
+    angles_df, forces_df = trim_and_join(forces_start, camera_start, force_freq, camera_freq, forces_df,
+                                         angles_df)
     data = angles_df.join(forces_df)
     return data
 

@@ -18,10 +18,10 @@ if __name__ == '__main__':
     use_hard_drive = True
     camera_n_samples = 10_000
     force_n_samples = 5_000
-    camera_start_threshold: float = 0.01
-    forces_start_threshold: float = 0.1
-    angles: list[torch.Tensor] = []
-    forces: list[torch.Tensor] = []
+    camera_start_threshold: float = 0.15
+    forces_start_threshold: float = 0.01
+    angles_lst: list[torch.Tensor] = []
+    forces_lst: list[torch.Tensor] = []
 
     tracking_params = {'NumBlobs': 3, 'minArea': 100, 'winSize': (15, 15), 'maxLevel': 2,
                        'criteria': (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
@@ -33,6 +33,7 @@ if __name__ == '__main__':
     show_wing_tracker = False
     show_angle_results = True
     show_force_results = False
+    show_start_heuristics = True
     num_rows_in_force_data_header = 21
 
     # the subdirectories of experiment names have the same names for cam2, cam3 we use cam2 w.log
@@ -51,26 +52,33 @@ if __name__ == '__main__':
         )
         angles_df = pd.DataFrame(angles.T, columns=['theta', 'phi', 'psi'])
         forces_df = Forces.main.get_forces(
-            csv_filename=curr_subdir_name,
+            exp_date=exp_date,
+            parent_dirname=parent_dirname,
+            photos_sub_dirname=curr_subdir_name,
             show_force_results=show_force_results,
             header_row_count=num_rows_in_force_data_header
         )
         df = Preprocess.trigger.merge_data(
-            parent_dirname=parent_dirname,
-            exp_date=exp_date,
+            trajectory_3d=trajectory_3d,
             angles_df=angles_df,
             forces_df=forces_df,
             camera_freq=f"{1 / camera_n_samples}S",
             force_freq=f"{1 / force_n_samples}S",
             camera_threshold=camera_start_threshold,
-            force_threshold=forces_start_threshold
+            force_threshold=forces_start_threshold,
+            show_start_indicators=show_start_heuristics
         )
         df = Preprocess.preprocess.interpolate(df)
         df = Preprocess.preprocess.resample(df)
 
-        angles.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
-        forces.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
+        angles_lst.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
+        forces_lst.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
 
-    trainer = ML.main.init_trainer(forces=torch.stack(forces), kinematics=torch.stack(angles))
-    trainer.fit()
-    trainer.predict()
+    forces = torch.stack(forces_lst)
+    kinematics = torch.stack(angles_lst)
+    torch.save(forces,f"{parent_dirname}\\experiments\\{exp_date}\\forces.pt")
+    torch.save(kinematics, f"{parent_dirname}\\experiments\\{exp_date}\\kinematics.pt")
+
+    # trainer = ML.main.init_trainer(forces=torch.stack(forces_lst), kinematics=torch.stack(angles_lst))
+    # trainer.fit()
+    # trainer.predict()

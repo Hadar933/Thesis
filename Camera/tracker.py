@@ -156,7 +156,7 @@ class OpticalFlow:
         all_images = sorted([im for im in os.listdir(images_path) if any([im.endswith('jpg'), im.endswith('png')])])
 
         if self.verbose:
-            video_output = os.path.join(camera_dirname, 'results.avi')
+            video_output = os.path.join(images_path, 'optical_flow_results.avi')
             frame_size = (frame.shape[1], frame.shape[0])  # Width and height of frames
             fps = 30
             fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Specify the codec

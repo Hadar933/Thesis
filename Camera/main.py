@@ -1,7 +1,6 @@
 import os.path
-import cv2
 import numpy as np
-import pandas as pd
+from loguru import logger
 
 from Camera import to_3d, camera_utils, tracker
 
@@ -32,15 +31,16 @@ def get_angles(
 
     optic_flow = tracker.OpticalFlow('blobs', show_wing_tracker)
     trajectories_2d_dict = {cam_num: None for cam_num in camera_numbers}
-    save_base_path = f"{parent_dirname}\\experiments\\{exp_date}\\results\\{photos_sub_dirname}"
+    save_base_path = f"{parent_dirname}\\experiments\\{exp_date}\\results\\{photos_sub_dirname.replace('Photos', '')}"
     angles_result_path = f"{save_base_path}\\angles.npy"
     trajectory_3d_result_path = f"{save_base_path}\\trajectories.npy"
 
     if os.path.exists(angles_result_path) and os.path.exists(trajectory_3d_result_path):
         # fast load in case previously computed
+        logger.info(f'Loading {angles_result_path} and {trajectory_3d_result_path} from memory...')
         trajectory_3d = np.load(trajectory_3d_result_path)
         angles = np.load(angles_result_path)
-        return angles,trajectory_3d
+        return angles, trajectory_3d
 
     for cam_num in camera_numbers:
         curr_path = f"{parent_dirname if parent_dirname else 'Camera'}\\experiments\\{exp_date}"
