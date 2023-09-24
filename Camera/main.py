@@ -32,6 +32,15 @@ def get_angles(
 
     optic_flow = tracker.OpticalFlow('blobs', show_wing_tracker)
     trajectories_2d_dict = {cam_num: None for cam_num in camera_numbers}
+    save_base_path = f"{parent_dirname}\\experiments\\{exp_date}\\results\\{photos_sub_dirname}"
+    angles_result_path = f"{save_base_path}\\angles.npy"
+    trajectory_3d_result_path = f"{save_base_path}\\trajectories.npy"
+
+    if os.path.exists(angles_result_path) and os.path.exists(trajectory_3d_result_path):
+        # fast load in case previously computed
+        trajectory_3d = np.load(trajectory_3d_result_path)
+        angles = np.load(angles_result_path)
+        return angles,trajectory_3d
 
     for cam_num in camera_numbers:
         curr_path = f"{parent_dirname if parent_dirname else 'Camera'}\\experiments\\{exp_date}"
@@ -64,6 +73,12 @@ def get_angles(
     angles = to_3d.xyz2euler(
         trajectories_3d=trajectory_3d
     )
+
+    if not os.path.exists(save_base_path):
+        os.makedirs(save_base_path)
+    np.save(angles_result_path, angles)
+    np.save(trajectory_3d_result_path, trajectory_3d)
+
     if show_angle_results:
         camera_utils.plot_trajectories(trajectory_3d, wing_plane_jmp=100)
         camera_utils.plot_angles(angles, n_samples=10_000)

@@ -111,7 +111,7 @@ def _extract_camera_crop_params(adj_file):
     x = int(re.search(rb'<CropRectangleX>(\d+)</CropRectangleX>', content).group(1))
     h = int(re.search(rb'<CropRectangleHeight>(\d+)</CropRectangleHeight>', content).group(1))
     w = int(re.search(rb'<CropRectangleWidth>(\d+)</CropRectangleWidth>', content).group(1))
-    return x, y, w, h
+    return y, x, h, w
 
 
 def shift_image_based_on_crop(
