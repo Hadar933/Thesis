@@ -1,4 +1,6 @@
 import os
+import time
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,23 +9,40 @@ import pandas as pd
 import Camera.tracker
 
 
-def find_force_start(threshold, force_df, verbose=False):
-    surpass_threshold_array = []
-    for f in force_df.values.T:
-        first_surpass_index = np.argmax(f > threshold)  # if f<=threshold, argmax = 0
-        if first_surpass_index > 0:
-            surpass_threshold_array.append(first_surpass_index)
-    start = np.min(surpass_threshold_array) if len(surpass_threshold_array) > 0 else 0
-    if verbose: plot_start(start, force_df)
+def smooth(y, kernel_size: int, how):
+    y_smooth = getattr(pd.Series(y).rolling(window=kernel_size, center=True), how)()
+    y_smooth = y_smooth.fillna(method='bfill').fillna(method='ffill').values
+    return y_smooth
+
+
+def find_start_based_on_pairwise_df_rows_dist(df, threshold, kernel_size=0, smooth_type=''):
+    if kernel_size > 0 and smooth_type:
+        df = df.apply(lambda col: smooth(col, kernel_size, smooth_type))
+    for t in range(len(df) - 1):
+        diff = (df.iloc[t + 1] - df.iloc[t]).abs()
+        if (diff > threshold).any():
+            return t
+    raise ValueError('Did not find camera start...')
+
+
+def find_signal_start_based_on_value_threshold(threshold, df, kernel_size=0, smooth_type=''):
+    if kernel_size > 0 and smooth_type:
+        df = df.apply(lambda col: smooth(col, kernel_size, smooth_type))
+    starts = []
+    for col_values in df.values.T:
+        start_candidate = np.argmax(col_values > threshold)  # for bool array, argmax returns first True(=1) value
+        if start_candidate != 0:
+            starts.append(start_candidate)
+    start = np.min(starts) if len(starts) > 0 else None
     return start
 
 
 def find_camera_start_based_on_trajectory(threshold, trajectory_3d):
     for t in range(trajectory_3d.shape[1] - 1):
-        p0curr, p1curr, p2curr = trajectory_3d[0, t, :], trajectory_3d[1, t, :], trajectory_3d[2, t, :]
-        p0next, p1next, p2next = trajectory_3d[0, t + 1, :], trajectory_3d[1, t + 1, :], trajectory_3d[2, t + 1, :]
-        dist1, dist2, dist3 = norm(p0next - p0curr), norm(p1next - p1curr), norm(p2next - p2curr)
-        if dist1 > threshold or dist2 > threshold or dist3 > threshold:
+        curr = trajectory_3d[:, t, :]
+        next = trajectory_3d[:, t + 1, :]
+        dist = norm(next - curr, axis=1)
+        if (dist > threshold).any():
             return t
     raise ValueError('Did not find camera start...')
 
@@ -87,11 +106,11 @@ def find_camera_start_based_on_images(images_path, tracking_params, threshold=15
 def plot_start(camera_start, forces_start, camera_df, forces_df) -> None:
     ax = camera_df.plot()
     plt.axvline(camera_start, color='red', linestyle='--')
-    plt.text(x=0.8 * camera_start, y=0.9 * camera_df.max().max(), s='Camera\n start')
+    plt.text(x=camera_start, y=0.9 * camera_df.max().max(), color='red', s='Camera\n start')
 
     forces_df.plot(ax=ax)
     plt.axvline(forces_start, color='blue', linestyle='--')
-    plt.text(x=0.8 * forces_start, y=0.9 * forces_df.max().max(), s='Forces\n start')
+    plt.text(x=forces_start, y=0.9 * forces_df.max().max(), color='blue', s='Forces\n start')
 
     plt.show()
 
@@ -104,6 +123,31 @@ def trim_and_join(force_start, camera_start, force_sample_freq, camera_sample_fr
     return angles_df, force_df
 
 
+from scipy.signal import hilbert
+from scipy.signal import find_peaks
+
+
+def find_start_indices(y):
+    # Compute the envelope of the signal
+    analytic_signal = hilbert(y)
+    envelope = np.abs(analytic_signal)
+
+    # Threshold the envelope
+    envelope[envelope >= -0.4] = -0.4
+    envelope[envelope <= -0.5] = -0.5
+
+    # Find the start of the signal
+    peaks, _ = find_peaks(envelope, height=-0.5, distance=350)
+
+    # Create a DataFrame to store the start and stop indices
+    start_indices = peaks
+    stop_indices = [peaks[i + 1] for i in range(len(peaks) - 1)] + [len(y) - 1]
+
+    StartStop = pd.DataFrame({'Start_Indices': start_indices, 'Stop_Indices': stop_indices})
+
+    return StartStop
+
+
 def merge_data(
         trajectory_3d,
         angles_df: pd.DataFrame,
@@ -113,8 +157,12 @@ def merge_data(
         force_threshold,
         show_start_indicators
 ):
+    kernel_size, how = 10, 'median'
+    # camera_start = find_start_based_on_pairwise_df_rows_dist(df=angles_df, threshold=camera_threshold,
+    #                                                          kernel_size=kernel_size, smooth_type=how)
+    forces_start = find_start_based_on_pairwise_df_rows_dist(df=forces_df, threshold=force_threshold,
+                                                             kernel_size=kernel_size, smooth_type=how)
     camera_start = find_camera_start_based_on_trajectory(camera_threshold, trajectory_3d)
-    forces_start = find_force_start(force_threshold, forces_df)
     if show_start_indicators:
         plot_start(camera_start, forces_start, angles_df, forces_df)
     angles_df, forces_df = trim_and_join(forces_start, camera_start, force_freq, camera_freq, forces_df,
@@ -122,10 +170,3 @@ def merge_data(
     data = angles_df.join(forces_df)
     return data
 
-
-if __name__ == '__main__':
-    tracking_params = {'NumBlobs': 3, 'minArea': 100, 'winSize': (15, 15), 'maxLevel': 2,
-                       'criteria': (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
-    images_path = "E:\\Hadar\\experiments\\22_09_2023\\cam2\\Photos[F=20_A=M_PIdiv3_K=0.9]"
-    s = find_camera_start_based_on_images(images_path, tracking_params)
-    x = 1

@@ -39,6 +39,13 @@ def init_trainer(
 
 
 if __name__ == '__main__':
-    # 64 x 120 x 5
-    kinematics, forces = utils.load_data_from_prssm_paper()
-    x = 2
+    exp_time = '22_09_2023'
+    use_hard_drive = True
+    parent_dirname = "E:\\Hadar" if use_hard_drive else ''
+
+    forces = torch.load(f"{parent_dirname}\\experiments\\{exp_time}\\forces.pt")
+    kinematics = torch.load(f"{parent_dirname}\\experiments\\{exp_time}\\kinematics.pt")
+
+    trainer = init_trainer(forces=forces, kinematics=kinematics)
+    trainer.fit()
+    trainer.predict()

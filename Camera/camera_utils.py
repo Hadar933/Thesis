@@ -168,7 +168,8 @@ def image_plotter(
 def plot_trajectories(
         trajectory_3d: np.ndarray,
         wing_plane_jmp: int = -1,
-        leading_edge_vec_jump: int = -1
+        leading_edge_vec_jump: int = -1,
+        add_to_title: str = ''
 ):
     """
     plots one or more trajectories in 3d, where z: depth, y: height, x: width
@@ -202,12 +203,12 @@ def plot_trajectories(
     ax.view_init(elev=-80, azim=-90)
     ax.set_xlabel('x [mm]'), ax.set_ylabel('y [mm]'), ax.set_zlabel('z [mm]')
     plt.legend()
-    plt.title("Points on the wing")
+    plt.title("Points on the wing " + add_to_title)
     plt.axis('equal')
     plt.show()
 
 
-def plot_angles(angles: np.ndarray, n_samples: Optional[int] = None, convert2deg: bool = True):
+def plot_angles(angles: np.ndarray, n_samples: Optional[int] = None, convert2deg: bool = True, add_to_title: str = ''):
     """
     plots the wing angles in one plot
     :param angles: (m_points,3) for [theta,phi,psi]
@@ -220,7 +221,7 @@ def plot_angles(angles: np.ndarray, n_samples: Optional[int] = None, convert2deg
             plt.plot(np.arange(0, num_samples) / n_samples, angles[i], label=label)
         else:
             plt.plot(angles[i], label=label)
-    plt.title('Wing Angles')
+    plt.title('Wing Angles ' + add_to_title)
     plt.xlabel('time [sec]' if n_samples else 'frame [#]'), plt.ylabel(f"angle [{'deg' if convert2deg else 'rad'}]")
     plt.legend(), plt.grid(), plt.show()
 

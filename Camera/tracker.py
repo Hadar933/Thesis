@@ -176,7 +176,11 @@ class OpticalFlow:
             if next_pts is not None:  # select good points
                 good_next_pts = next_pts[status == 1]
                 good_prev_pts = prev_pts[status == 1]
-                trajectories = np.append(trajectories, good_next_pts[:, np.newaxis, :], axis=1)
+                if good_next_pts.shape[0] != trajectories.shape[0]:  # we did not find all points on the wing
+                    logger.warning(f'Did not find all {trajectories.shape[0]} points. Finishing Process')
+                    return trajectories
+                else:
+                    trajectories = np.append(trajectories, good_next_pts[:, np.newaxis, :], axis=1)
 
             if self.verbose:
                 for i, (new, old) in enumerate(zip(good_next_pts, good_prev_pts)):

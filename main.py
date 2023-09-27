@@ -2,12 +2,12 @@ import os
 import torch
 import pandas as pd
 import cv2
+from tqdm import tqdm
 
 import Camera.main
 import Forces.main
 import Preprocess.trigger
 import Preprocess.preprocess
-import ML.main
 
 if __name__ == '__main__':
 
@@ -19,7 +19,7 @@ if __name__ == '__main__':
     camera_n_samples = 10_000
     force_n_samples = 5_000
     camera_start_threshold: float = 0.15
-    forces_start_threshold: float = 0.01
+    forces_start_threshold: float = 0.001
     angles_lst: list[torch.Tensor] = []
     forces_lst: list[torch.Tensor] = []
 
@@ -31,14 +31,14 @@ if __name__ == '__main__':
     first_image_name = '000000.jpg'
     add_manual_crop = False
     show_wing_tracker = False
-    show_angle_results = True
+    show_angle_results = False
     show_force_results = False
-    show_start_heuristics = True
+    show_start_heuristics = False
     num_rows_in_force_data_header = 21
 
     # the subdirectories of experiment names have the same names for cam2, cam3 we use cam2 w.log
     photos_subdirs_name = sorted(os.listdir(f'{parent_dirname}\\experiments\\{exp_date}\\cam2'))
-    for curr_subdir_name in photos_subdirs_name:
+    for curr_subdir_name in tqdm(photos_subdirs_name):
         angles, trajectory_3d = Camera.main.get_angles(
             exp_date=exp_date,
             parent_dirname=parent_dirname,
@@ -58,6 +58,11 @@ if __name__ == '__main__':
             show_force_results=show_force_results,
             header_row_count=num_rows_in_force_data_header
         )
+
+        trajectory_3d = trajectory_3d[:, 2000:, :]
+        angles_df = angles_df[2000:].reset_index(drop=True)
+        forces_df = forces_df[2000:].reset_index(drop=True)
+
         df = Preprocess.trigger.merge_data(
             trajectory_3d=trajectory_3d,
             angles_df=angles_df,
@@ -73,12 +78,18 @@ if __name__ == '__main__':
 
         angles_lst.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
         forces_lst.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
+    trim_len = sorted([len(f) for f in angles_lst])[2]
+    trimmed_angles = []
+    trimmed_forces = []
+    for angles, forces in zip(angles_lst, forces_lst):
+        angles = angles[:trim_len]
+        forces = forces[:trim_len]
+        if len(angles) == trim_len and len(forces) == trim_len:
+            trimmed_angles.append(angles)
+            trimmed_forces.append(forces)
 
-    forces = torch.stack(forces_lst)
-    kinematics = torch.stack(angles_lst)
-    torch.save(forces,f"{parent_dirname}\\experiments\\{exp_date}\\forces.pt")
+    kinematics = torch.stack(trimmed_angles)
+    forces = torch.stack(trimmed_forces)
+    torch.save(forces, f"{parent_dirname}\\experiments\\{exp_date}\\forces.pt")
     torch.save(kinematics, f"{parent_dirname}\\experiments\\{exp_date}\\kinematics.pt")
 
-    # trainer = ML.main.init_trainer(forces=torch.stack(forces_lst), kinematics=torch.stack(angles_lst))
-    # trainer.fit()
-    # trainer.predict()

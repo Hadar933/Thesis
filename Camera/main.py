@@ -64,6 +64,10 @@ def get_angles(
         )
         trajectories_2d_dict[cam_num] = trajectory_2d
 
+    # making sure the trajectory lengths match (as we return in case of not identifying all points on the wing):
+    min_length = min([trajectory.shape[1] for trajectory in trajectories_2d_dict.values()])
+    trajectories_2d_dict = {key: val[:, :min_length, :] for key, val in trajectories_2d_dict.items()}
+
     trajectory_3d = to_3d.triangulate(
         proj_mat1_path=proj1_path,
         proj_mat2_path=proj2_path,
