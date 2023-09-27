@@ -15,7 +15,7 @@ def init_trainer(
         target_win=1,
         intersect=0,
         batch_size=64,
-        n_epochs=30,
+        n_epochs=20,
         seed=3407,
         criterion=nn.L1Loss(),
         patience=10,
@@ -40,11 +40,11 @@ def init_trainer(
 
 if __name__ == '__main__':
     exp_time = '22_09_2023'
-    use_hard_drive = True
-    parent_dirname = "E:\\Hadar" if use_hard_drive else ''
+    use_hard_drive = False
+    parent_dirname = "E:\\Hadar\\experiments" if use_hard_drive else '..\\Results'
 
-    forces = torch.load(f"{parent_dirname}\\experiments\\{exp_time}\\forces.pt")
-    kinematics = torch.load(f"{parent_dirname}\\experiments\\{exp_time}\\kinematics.pt")
+    forces = torch.load(f"{parent_dirname}\\{exp_time}\\forces.pt")
+    kinematics = torch.load(f"{parent_dirname}\\{exp_time}\\kinematics.pt")
 
     trainer = init_trainer(forces=forces, kinematics=kinematics)
     trainer.fit()
