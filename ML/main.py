@@ -40,6 +40,7 @@ def init_trainer(
 
 if __name__ == '__main__':
     exp_time = '22_09_2023'
+
     use_hard_drive = False
     parent_dirname = "E:\\Hadar\\experiments" if use_hard_drive else '..\\Results'
 
