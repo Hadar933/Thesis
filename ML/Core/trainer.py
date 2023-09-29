@@ -59,7 +59,6 @@ class Trainer:
         self._stop_training: bool = False
         self._early_stopping: int = 0
 
-        self.model_name: str = model_name
         self.model: torch.nn.Module = model.to(device)
 
         self.criterion: torch.nn.modules.loss = criterion
@@ -81,7 +80,7 @@ class Trainer:
     def _create_model_dir(self):
         """ called when a trainer is initialized and creates a model dir with relevant information txt file(s) """
         init_timestamp = datetime.now().strftime(utils.TIME_FORMAT)
-        self.model_dir = f"{os.getcwd()}\\saved_models\\{self.model_name}_{init_timestamp}"
+        self.model_dir = f"{os.getcwd()}\\saved_models\\{self.model}_{init_timestamp}"
         self._info_path = f"{self.model_dir}\\trainer_info.yaml"
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
