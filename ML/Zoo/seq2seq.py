@@ -109,9 +109,18 @@ class Decoder(nn.Module):
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, input_dim: Tuple, target_lag,
-                 enc_embedding_size, enc_hidden_size, enc_num_layers, enc_bidirectional,
-                 dec_embedding_size, dec_hidden_size, dec_output_size):
+    def __init__(
+            self,
+            input_dim: Tuple,
+            target_lag: int,
+            enc_embedding_size: int,
+            enc_hidden_size: int,
+            enc_num_layers: int,
+            enc_bidirectional: bool,
+            dec_embedding_size: int,
+            dec_hidden_size: int,
+            dec_output_size: int
+    ):
         """
 
         @param input_dim: [batch_size, feature_lags, encoder_input_size]
@@ -125,8 +134,16 @@ class Seq2Seq(nn.Module):
         @param dec_output_size: the output size for the decoder
         """
         super(Seq2Seq, self).__init__()
+        self.input_dim = input_dim
         self.batch_size, self.feature_lags, self.input_size = input_dim
         self.target_lag = target_lag
+        self.enc_embedding_size = enc_embedding_size
+        self.enc_hidden_size = enc_hidden_size
+        self.enc_num_layers = enc_num_layers
+        self.enc_bidirectional = enc_bidirectional
+        self.dec_embedding_size = enc_embedding_size
+        self.dec_hidden_size = dec_hidden_size
+        self.dec_output_size = dec_output_size
         self.cast_input_to_dec_output = nn.Linear(input_dim[-1], dec_output_size)
         self.encoder = Encoder(self.input_size, enc_embedding_size, enc_hidden_size, dec_hidden_size, enc_num_layers,
                                enc_bidirectional)
@@ -135,9 +152,10 @@ class Seq2Seq(nn.Module):
                                self.attention, enc_bidirectional)
         self.output_size = self.batch_size, self.target_lag, dec_output_size
 
-    @property
-    def name(self):
-        return 'seq2seq'
+    def __str__(self):
+        return (f'Input[{self.input_dim}]seq2seq[{self.target_lag},{self.enc_embedding_size},{self.enc_hidden_size},'
+                f'{self.enc_num_layers},{self.enc_bidirectional},{self.dec_embedding_size},{self.dec_hidden_size},'
+                f'{self.dec_output_size}]')
 
     def forward(self, x: torch.Tensor):
         """
@@ -146,7 +164,7 @@ class Seq2Seq(nn.Module):
         """
         outputs = []
         # encoder_outputs is all hidden states of the input sequence, back and forwards
-        # hidden is the final forward and backward hidden states, passed through a linear layer
+        # hidden is the final forward and backward hidden states,ל passed through a linear layer
         encoder_outputs, hidden = self.encoder(x)
         input = self.cast_input_to_dec_output(x[:, -1, :])
         for t in range(self.target_lag):
