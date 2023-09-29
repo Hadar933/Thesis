@@ -22,10 +22,11 @@ class Trainer:
             train_percent: float,
             val_percent: float,
             feature_win: int,
-            target_win: int, intersect: int,
+            target_win: int,
+            intersect: int,
             batch_size: int,
             model: torch.nn.Module,
-            model_name: str,
+            exp_name: str,
             optimizer: torch.optim.Optimizer,
             criterion: torch.nn.modules.loss._Loss,
             device: torch.cuda.device,
@@ -48,6 +49,8 @@ class Trainer:
 
         self.val_percent = val_percent
         self.train_percent = train_percent
+
+        self.exp_name = exp_name
 
         self.features_normalizer = NormalizerFactory.create(features_norm_method, features_global_normalizer)
         self.targets_normalizer = NormalizerFactory.create(targets_norm_method, targets_global_normalizer)
@@ -80,12 +83,11 @@ class Trainer:
     def _create_model_dir(self):
         """ called when a trainer is initialized and creates a model dir with relevant information txt file(s) """
         init_timestamp = datetime.now().strftime(utils.TIME_FORMAT)
-        self.model_dir = f"{os.getcwd()}\\saved_models\\{self.model}_{init_timestamp}"
-        self._info_path = f"{self.model_dir}\\trainer_info.yaml"
+        self.model_dir = os.path.join(os.getcwd(), 'saved_models', f"{self.model}_{self.exp_name}_{init_timestamp}")
+        self._info_path = os.path.join(self.model_dir, 'trainer_info.yaml')
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
         # TODO: yaml file looks bad
-        # model_summary = summary(self.model, input_size=(1, self.features.shape[1], self.features.shape[2]))
         utils.update_json(self._info_path, {'model': str(self.model), 'patience': self.patience,
                                             'patience_tolerance': self.patience_tolerance, 'loss': str(self.criterion),
                                             'optim': str(self.optimizer), 'epochs': self.n_epochs})
@@ -95,8 +97,6 @@ class Trainer:
         data_dict = utils.train_val_test_split(self.features, self.targets, self.train_percent, self.val_percent,
                                                self.feature_win, self.target_win, self.intersect, self.batch_size,
                                                self.features_normalizer, self.targets_normalizer)
-        # train_statistics = utils.tensor_stats(data_dict['train']['data'])
-        # utils.update_json(self.info_path, train_statistics)
         return data_dict['train']['loader'], data_dict['val']['loader'], data_dict['test']['loader']
 
     def _train_one_epoch(self, epoch: int) -> float:
@@ -141,18 +141,18 @@ class Trainer:
             self._best_val_loss = val_loss
             if self._best_model_path:
                 os.remove(self._best_model_path)
-            self._best_model_path = f"{self.model_dir}/best_{self.model_name}_{time}_epoch_{epoch}.pt"
+            self._best_model_path = os.path.join(self.model_dir, f"{self.model}_{self.exp_name}_{time}.pt")
             torch.save(self.model.state_dict(), self._best_model_path)
         elif torch.abs(val_loss - prev_val_loss) <= self.patience_tolerance:  # if val doesn't improve, counter += 1
             self._early_stopping += 1
         if self._early_stopping >= self.patience:  # if patience value is reached, the training process halts
             self._stop_training = True
-            print(f"[Early Stopping] at epoch {epoch}.")
+            print(f"[Early Stopping] at epoch #{epoch}.")
 
     def fit(self) -> None:
         """ fits the model to the training data, with early stopping """
         fit_time = datetime.now().strftime(utils.TIME_FORMAT)
-        self._tb_writer = SummaryWriter(f'tb_runs/{self.model_name}_{fit_time}')
+        self._tb_writer = SummaryWriter(os.path.join('tb_runs', f"{self.model}_{self.exp_name}_{fit_time}"))
         prev_val_loss = float('inf')
         for epoch in range(self.n_epochs):
             train_avg_loss = self._train_one_epoch(epoch)
