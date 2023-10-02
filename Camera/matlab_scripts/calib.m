@@ -1,4 +1,5 @@
-exp_date = '21_09_2023';
+clear;
+exp_date = '02_10_2023';
 use_hard_drive = true;
 if use_hard_drive
     folder1 = sprintf('E:\\Hadar\\calibrations\\%s\\cam2cpy', exp_date);
