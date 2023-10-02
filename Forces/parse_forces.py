@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 
 def read_forces_csv(
         csv_filename: str,
-        header_row_count: int
+        header_row_count: int,
+        tare: list[str]
 ) -> Tuple[pd.DataFrame, Dict[str, List]]:
     """
     reads the csv_filename and extracts the header information alongside a forces dataframe
@@ -31,7 +32,8 @@ def read_forces_csv(
     forces_df = pd.read_csv(csv_filename, skiprows=header_row_count).iloc[:-1, f1_col_ind:f4_col_ind]
     forces_df.columns = ['F1', 'F2', 'F3', 'F4']
     forces_df = forces_df.applymap(lambda x: float(x.replace(' N', '')))  # remove ` N` from every cell
-
+    if tare:
+        forces_df[tare] -= forces_df[tare].iloc[0]
     return forces_df, header_dict
 
 
@@ -45,3 +47,10 @@ def plot_forces(df: pd.DataFrame, header: Dict[str, List], convert_to_time: bool
             xlabel="Time [sec]" if convert_to_time else f"Sample [#]",
             grid=True)
     plt.show()
+
+
+if __name__ == '__main__':
+    df, head = read_forces_csv(
+        r"C:\Users\hadar\OneDrive\Desktop\tst.csv", 21)
+    plot_forces(df, head)
+    z = 2

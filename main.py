@@ -22,6 +22,7 @@ if __name__ == '__main__':
     forces_start_threshold: float = 0.001
     angles_lst: list[torch.Tensor] = []
     forces_lst: list[torch.Tensor] = []
+    tare = []  # we can use tare to specify force column names we want to shift to zero ( df[tare] - df[tare].iloc[0] )
 
     tracking_params = {'NumBlobs': 3, 'minArea': 100, 'winSize': (15, 15), 'maxLevel': 2,
                        'criteria': (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
@@ -60,7 +61,8 @@ if __name__ == '__main__':
             parent_dirname=parent_dirname,
             photos_sub_dirname=curr_subdir_name,
             show_force_results=show_force_results,
-            header_row_count=num_rows_in_force_data_header
+            header_row_count=num_rows_in_force_data_header,
+            tare=tare
         )
 
         trajectory_3d = trajectory_3d[:, start_from:, :]
@@ -81,7 +83,7 @@ if __name__ == '__main__':
         )
         if input('Is this one bad? [y/Any]') == 'y':
             continue
-        
+
         df = Preprocess.preprocess.interpolate(df)
         df = Preprocess.preprocess.resample(df)
 
