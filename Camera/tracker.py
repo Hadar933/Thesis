@@ -139,6 +139,7 @@ class OpticalFlow:
         """
 
         images_path = os.path.join(camera_dirname, photos_sub_dirname)
+        assert os.path.exists(images_path), f'Path {images_path} does not exist.'
         logger.info(f'Calculating Trajectory using optical flow on {images_path}...')
         frame = cv2.imread(os.path.join(images_path, first_image_name))
 
