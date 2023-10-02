@@ -11,7 +11,7 @@ import Preprocess.preprocess
 
 if __name__ == '__main__':
 
-    exp_date = '22_09_2023'
+    exp_date = '02_10_2023'
     assert all(os.path.exists(f"Camera\\calibrations\\{exp_date}\\cameraMatrix{i}.mat") for i in [1, 2]), \
         'run calib.m first!'
 
@@ -33,8 +33,12 @@ if __name__ == '__main__':
     show_wing_tracker = False
     show_angle_results = False
     show_force_results = False
-    show_start_heuristics = False
+    show_start_heuristics = True
     num_rows_in_force_data_header = 21
+    start_from = 2000
+    merging_smooth_method = 'median'
+    merging_smooth_kernel_size = 10
+    bad_dirs = []
 
     # the subdirectories of experiment names have the same names for cam2, cam3 we use cam2 w.log
     photos_subdirs_name = sorted(os.listdir(f'{parent_dirname}\\experiments\\{exp_date}\\cam2'))
@@ -59,9 +63,9 @@ if __name__ == '__main__':
             header_row_count=num_rows_in_force_data_header
         )
 
-        trajectory_3d = trajectory_3d[:, 2000:, :]
-        angles_df = angles_df[2000:].reset_index(drop=True)
-        forces_df = forces_df[2000:].reset_index(drop=True)
+        trajectory_3d = trajectory_3d[:, start_from:, :]
+        angles_df = angles_df[start_from:].reset_index(drop=True)
+        forces_df = forces_df[start_from:].reset_index(drop=True)
 
         df = Preprocess.trigger.merge_data(
             trajectory_3d=trajectory_3d,
@@ -71,13 +75,19 @@ if __name__ == '__main__':
             force_freq=f"{1 / force_n_samples}S",
             camera_threshold=camera_start_threshold,
             force_threshold=forces_start_threshold,
+            smooth_method=merging_smooth_method,
+            smooth_kernel_size=merging_smooth_kernel_size,
             show_start_indicators=show_start_heuristics
         )
+        if input('Is this one bad? [y/Any]') == 'y':
+            continue
+        
         df = Preprocess.preprocess.interpolate(df)
         df = Preprocess.preprocess.resample(df)
 
         angles_lst.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
         forces_lst.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
+
     trim_len = sorted([len(f) for f in angles_lst])[2]
     trimmed_angles = []
     trimmed_forces = []
@@ -90,6 +100,5 @@ if __name__ == '__main__':
 
     kinematics = torch.stack(trimmed_angles)
     forces = torch.stack(trimmed_forces)
-    torch.save(forces, f"{parent_dirname}\\experiments\\{exp_date}\\forces.pt")
-    torch.save(kinematics, f"{parent_dirname}\\experiments\\{exp_date}\\kinematics.pt")
-
+    torch.save(forces, f"{parent_dirname}\\experiments\\{exp_date}\\forces_small.pt")
+    torch.save(kinematics, f"{parent_dirname}\\experiments\\{exp_date}\\kinematics_small.pt")
