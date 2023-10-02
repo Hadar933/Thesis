@@ -155,13 +155,12 @@ def merge_data(
         camera_freq, force_freq,
         camera_threshold,
         force_threshold,
+        smooth_kernel_size,
+        smooth_method,
         show_start_indicators
 ):
-    kernel_size, how = 10, 'median'
-    # camera_start = find_start_based_on_pairwise_df_rows_dist(df=angles_df, threshold=camera_threshold,
-    #                                                          kernel_size=kernel_size, smooth_type=how)
     forces_start = find_start_based_on_pairwise_df_rows_dist(df=forces_df, threshold=force_threshold,
-                                                             kernel_size=kernel_size, smooth_type=how)
+                                                             kernel_size=smooth_kernel_size, smooth_type=smooth_method)
     camera_start = find_camera_start_based_on_trajectory(camera_threshold, trajectory_3d)
     if show_start_indicators:
         plot_start(camera_start, forces_start, angles_df, forces_df)
