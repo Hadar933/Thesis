@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from datetime import datetime
 from ML.Utilities import utils
 import pandas as pd
@@ -40,7 +41,8 @@ class Trainer:
 			features_norm_method: str,
 			targets_norm_method: str,
 			features_global_normalizer: bool,
-			targets_global_normalizer: bool
+			targets_global_normalizer: bool,
+			flip_history: bool
 	):
 		torch.manual_seed(seed)  # TODO: doesnt seem to do anything
 
@@ -58,10 +60,14 @@ class Trainer:
 		self.features_normalizer = NormalizerFactory.create(features_norm_method, features_global_normalizer)
 		self.targets_normalizer = NormalizerFactory.create(targets_norm_method, targets_global_normalizer)
 
+		self.flip_history = flip_history
 		self.features_path = features_path
 		self.targets_path = targets_path
 		self.features = torch.load(features_path).float()
 		self.targets = torch.load(targets_path).float()
+		if self.flip_history:  # an alternative to [:,::-1,:], which is not yet supported as is in torch
+			self.features = torch.fliplr(self.features)
+			self.targets = torch.fliplr(self.targets)
 
 		self.patience_tolerance: float = patience_tolerance
 		self.patience: int = patience
@@ -110,12 +116,8 @@ class Trainer:
 		self.info_path = os.path.join(self.model_dir, 'trainer_info.yaml')
 		if not os.path.exists(self.model_dir):
 			os.makedirs(self.model_dir)
-		# TODO: yaml file looks bad
-		utils.update_json(self.info_path, {
-			'model': str(self.model), 'patience': self.patience,
-			'patience_tolerance': self.patience_tolerance, 'loss': str(self.criterion),
-			'optim': str(self.optimizer), 'epochs': self.n_epochs
-		})
+
+		utils.update_json(self.info_path, vars(self).copy())
 
 	def _set_loaders(self):
 		""" sets the train/val/test loaders and updates the training statistics in the yaml (for normalization)  """
@@ -211,10 +213,19 @@ class Trainer:
 		return all_preds
 
 	@classmethod
-	def from_json(self):
-		pass
+	def from_model_dirname(cls, model_dirname):
+		model_pt_path = ""
+		trainer_yaml_path = ""
+		for file_name in os.listdir(model_dirname):
+			if file_name.endswith('.pt'):
+				model_pt_path = os.path.join(model_dirname, file_name)
+			elif file_name.endswith('.yaml'):
+				trainer_yaml_path = os.path.join(model_dirname, file_name)
 
-	def load_trained_model(self, trained_model_path: str) -> None:
-		""" loads into the trainer a trained model from memory"""
-		self.model.load_state_dict(torch.load(trained_model_path, map_location=self.device))
-		self.model.eval()
+		with open(trainer_yaml_path, 'r') as f:
+			trainer_args = json.load(f)
+
+		trainer = cls(**trainer_args)
+		trainer.model = trainer.model.load_state_dict(torch.load(model_pt_path, map_location=trainer.device))
+		trainer.model.eval()
+		return trainer
