@@ -21,6 +21,7 @@ if __name__ == '__main__':
 	features_global_norm = True
 	targets_norm = 'identity'
 	targets_global_norm = True
+	flip_history = True
 
 	forces_path = '/home/hadar/Downloads/forces_small.pt'
 	kinematics_path = '/home/hadar/Downloads/kinematics_small.pt'
@@ -71,7 +72,8 @@ if __name__ == '__main__':
 						features_norm_method=features_norm,
 						features_global_normalizer=features_global_norm,
 						targets_norm_method=targets_norm,
-						targets_global_normalizer=targets_global_norm
+						targets_global_normalizer=targets_global_norm,
+						flip_history=flip_history
 					)
 					trainer.fit()
 
