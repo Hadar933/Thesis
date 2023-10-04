@@ -11,7 +11,7 @@ import Preprocess.preprocess
 
 if __name__ == '__main__':
 
-    exp_date = '02_10_2023'
+    exp_date = '03_10_2023'
     assert all(os.path.exists(f"Camera\\calibrations\\{exp_date}\\cameraMatrix{i}.mat") for i in [1, 2]), \
         'run calib.m first!'
 
@@ -81,8 +81,8 @@ if __name__ == '__main__':
             smooth_kernel_size=merging_smooth_kernel_size,
             show_start_indicators=show_start_heuristics
         )
-        if input('Is this one bad? [y/Any]') == 'y':
-            continue
+        # if input('Is this one bad? [y/Any]') == 'y':
+        #     continue
 
         df = Preprocess.preprocess.interpolate(df)
         df = Preprocess.preprocess.resample(df)
@@ -102,5 +102,5 @@ if __name__ == '__main__':
 
     kinematics = torch.stack(trimmed_angles)
     forces = torch.stack(trimmed_forces)
-    torch.save(forces, f"{parent_dirname}\\experiments\\{exp_date}\\forces_small.pt")
-    torch.save(kinematics, f"{parent_dirname}\\experiments\\{exp_date}\\kinematics_small.pt")
+    torch.save(forces, f"{parent_dirname}\\experiments\\{exp_date}\\forces.pt")
+    torch.save(kinematics, f"{parent_dirname}\\experiments\\{exp_date}\\kinematics.pt")
