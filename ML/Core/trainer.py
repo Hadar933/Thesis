@@ -1,3 +1,4 @@
+import importlib.util
 from datetime import datetime
 from ML.Utilities import utils
 import pandas as pd
@@ -7,6 +8,8 @@ import torch
 from tqdm import tqdm
 import os
 from ML.Utilities.normalizer import NormalizerFactory
+from typing import Union
+from torchinfo import summary
 
 
 class Trainer:
@@ -25,11 +28,11 @@ class Trainer:
 			target_win: int,
 			intersect: int,
 			batch_size: int,
-			model: torch.nn.Module,
+			model_name: str,
+			model_args: dict,
 			exp_name: str,
-			optimizer: torch.optim.Optimizer,
-			criterion: torch.nn.modules.loss._Loss,
-			device: torch.cuda.device,
+			optimizer: str,
+			criterion: str,
 			patience: int,
 			patience_tolerance: float,
 			n_epochs: int,
@@ -65,35 +68,54 @@ class Trainer:
 		self._stop_training: bool = False
 		self._early_stopping: int = 0
 
-		self.model: torch.nn.Module = model.to(device)
+		self.model_name = model_name
+		self.model_kwargs = model_args
+		self.model: torch.nn.Module = self._construct_model()
 
-		self.criterion: torch.nn.modules.loss = criterion
-		self.optimizer: torch.optim.Optimizer = optimizer
-		self.device: torch.cuda.device = device
+		self.criterion: torch.nn.modules.loss = getattr(torch.nn, criterion)
+		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer)(self.model.parameters())
+		self.device: torch.cuda.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 		self._best_val_loss: float = float('inf')
 
 		self.n_epochs: int = n_epochs
 
-		self._tb_writer: SummaryWriter = None
+		self._tb_writer: Union[SummaryWriter, None] = None
 
 		self.model_dir: str = ""
-		self._best_model_path: str = ""
-		self._info_path = ""
+		self.best_model_path: str = ""
+		self.info_path = ""
 		self._create_model_dir()
 
 		self.train_loader, self.val_loader, self.all_test_loaders = self._set_loaders()
+
+	def _construct_model(self):
+		file_path = os.path.join('Zoo', f'{self.model_name}.py')
+		if not os.path.exists(file_path):
+			raise FileNotFoundError(f"The model file '{file_path}' does not exist")
+
+		spec = importlib.util.spec_from_file_location(self.model_name, file_path)
+		module = importlib.util.module_from_spec(spec)
+		spec.loader.exec_module(module)
+		model_class = getattr(module, self.model_name)
+		model = model_class(**self.model_kwargs)
+		print(summary(self.model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1])))
+
+		return model.to(self.device)
 
 	def _create_model_dir(self):
 		""" called when a trainer is initialized and creates a model dir with relevant information txt file(s) """
 		init_timestamp = datetime.now().strftime(utils.TIME_FORMAT)
 		self.model_dir = os.path.join(os.getcwd(), 'saved_models', f"{self.model}_{self.exp_name}_{init_timestamp}")
-		self._info_path = os.path.join(self.model_dir, 'trainer_info.yaml')
+		self.info_path = os.path.join(self.model_dir, 'trainer_info.yaml')
 		if not os.path.exists(self.model_dir):
 			os.makedirs(self.model_dir)
 		# TODO: yaml file looks bad
-		utils.update_json(self._info_path, {'model': str(self.model), 'patience': self.patience,
-											'patience_tolerance': self.patience_tolerance, 'loss': str(self.criterion),
-											'optim': str(self.optimizer), 'epochs': self.n_epochs})
+		utils.update_json(self.info_path, {
+			'model': str(self.model), 'patience': self.patience,
+			'patience_tolerance': self.patience_tolerance, 'loss': str(self.criterion),
+			'optim': str(self.optimizer), 'epochs': self.n_epochs
+		})
 
 	def _set_loaders(self):
 		""" sets the train/val/test loaders and updates the training statistics in the yaml (for normalization)  """
@@ -142,10 +164,10 @@ class Trainer:
 		""" saves the best model and performs early stopping if needed """
 		if val_loss < self._best_val_loss:  # if val is improved, we update the best model
 			self._best_val_loss = val_loss
-			if self._best_model_path:
-				os.remove(self._best_model_path)
-			self._best_model_path = os.path.join(self.model_dir, f"{self.model}_{self.exp_name}_{time}.pt")
-			torch.save(self.model.state_dict(), self._best_model_path)
+			if self.best_model_path:
+				os.remove(self.best_model_path)
+			self.best_model_path = os.path.join(self.model_dir, f"{self.model}_{self.exp_name}_{time}.pt")
+			torch.save(self.model.state_dict(), self.best_model_path)
 		elif torch.abs(val_loss - prev_val_loss) <= self.patience_tolerance:  # if val doesn't improve, counter += 1
 			self._early_stopping += 1
 		if self._early_stopping >= self.patience:  # if patience value is reached, the training process halts
@@ -166,9 +188,9 @@ class Trainer:
 			if self._stop_training:
 				break
 			prev_val_loss = val_avg_loss
-		utils.update_json(self._info_path, {"early_stopping": self._early_stopping,
-											"best_val_loss": self._best_val_loss.item(),
-											"best_model_path": self._best_model_path})
+		utils.update_json(self.info_path, {"early_stopping": self._early_stopping,
+										   "best_val_loss": self._best_val_loss.item(),
+										   "best_model_path": self.best_model_path})
 
 	def predict(self) -> pd.DataFrame:
 		""" creates a prediction for every test loader in our test loaders list """
@@ -185,7 +207,12 @@ class Trainer:
 					curr_trues.append(true_i.squeeze())
 				all_preds[f"pred_{j}"] = curr_preds
 				all_preds[f"true_{j}"] = curr_trues
+		all_preds = utils.format_df_torch_entries(all_preds)
 		return all_preds
+
+	@classmethod
+	def from_json(self):
+		pass
 
 	def load_trained_model(self, trained_model_path: str) -> None:
 		""" loads into the trainer a trained model from memory"""
