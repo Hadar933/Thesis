@@ -1,6 +1,5 @@
 import cv2
 from typing import List, Dict, Union, Tuple, Sequence, Literal
-from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -163,7 +162,7 @@ class OpticalFlow:
             fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Specify the codec
             out = cv2.VideoWriter(video_output, fourcc, fps, frame_size)
 
-        for image_name in tqdm(all_images[1:], total=len(all_images) - 1):
+        for image_name in all_images[1:]:
             frame = cv2.imread(os.path.join(images_path, image_name))
             if add_manual_crop:
                 frame = camera_utils.crop(frame, y, x, h, w)
