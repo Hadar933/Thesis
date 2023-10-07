@@ -23,8 +23,8 @@ if __name__ == '__main__':
 	targets_global_norm = True
 	flip_history = True
 
-	forces_path = '/home/hadar/Downloads/forces_small.pt'
-	kinematics_path = '/home/hadar/Downloads/kinematics_small.pt'
+	forces_path = r'E:\Hadar\experiments\22_09_2023\forces.pt'
+	kinematics_path = r'E:\Hadar\experiments\22_09_2023\kinematics.pt'
 
 	forces, kinematics = torch.load(forces_path), torch.load(kinematics_path)
 	input_size, output_size = forces.shape[-1], kinematics.shape[-1]
@@ -32,14 +32,14 @@ if __name__ == '__main__':
 	del forces
 	del kinematics
 
-	model_name = 'Seq2Seq'
+	seq2seq_name = 'Seq2Seq'
 
 	for emb_size in [8, 16, 32, 64, 128, 256]:
 		for hid_size in [8, 16, 32, 64, 128, 256]:
 			for fwin in [64, 128, 256, 512]:
 				for nlayers in [1, 2, 3]:
 					exp_name = f""
-					model_args = dict(
+					seq2seq_args = dict(
 						input_dim=input_dim,
 						target_lag=target_win,
 						enc_embedding_size=emb_size,
@@ -50,7 +50,6 @@ if __name__ == '__main__':
 						dec_hidden_size=hid_size,
 						dec_output_size=output_size
 					)
-
 					trainer = Trainer(
 						features_path=forces_path,
 						targets_path=kinematics_path,
@@ -60,11 +59,11 @@ if __name__ == '__main__':
 						target_win=target_win,
 						intersect=intersect,
 						batch_size=batch_size,
-						model_name=model_name,
-						model_args=model_args,
+						model_name=seq2seq_name,
+						model_args=seq2seq_args,
 						exp_name=exp_name,
-						optimizer=optimizer,
-						criterion=criterion,
+						optimizer_name=optimizer,
+						criterion_name=criterion,
 						patience=patience,
 						patience_tolerance=patience_tolerance,
 						n_epochs=n_epochs,
