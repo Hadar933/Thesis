@@ -32,8 +32,8 @@ class Trainer:
 			model_name: str,
 			model_args: dict,
 			exp_name: str,
-			optimizer: str,
-			criterion: str,
+			optimizer_name: str,
+			criterion_name: str,
 			patience: int,
 			patience_tolerance: float,
 			n_epochs: int,
@@ -45,7 +45,7 @@ class Trainer:
 			flip_history: bool
 	):
 		torch.manual_seed(seed)  # TODO: doesnt seem to do anything
-
+		self.seed = seed
 		self.feature_win = feature_win
 		self.target_win = target_win
 		self.intersect = intersect
@@ -57,6 +57,10 @@ class Trainer:
 
 		self.exp_name = exp_name
 
+		self.features_norm_method = features_norm_method
+		self.features_global_normalization = features_global_normalizer
+		self.targets_norm_method = targets_norm_method
+		self.targets_global_normalizer = targets_global_normalizer
 		self.features_normalizer = NormalizerFactory.create(features_norm_method, features_global_normalizer)
 		self.targets_normalizer = NormalizerFactory.create(targets_norm_method, targets_global_normalizer)
 
@@ -65,7 +69,7 @@ class Trainer:
 		self.targets_path = targets_path
 		self.features = torch.load(features_path).float()
 		self.targets = torch.load(targets_path).float()
-		if self.flip_history:  # an alternative to [:,::-1,:], which is not yet supported as is in torch
+		if self.flip_history:  # fliplr is an alternative to [:,::-1,:], which is not yet supported as is in torch
 			self.features = torch.fliplr(self.features)
 			self.targets = torch.fliplr(self.targets)
 
@@ -75,12 +79,15 @@ class Trainer:
 		self._early_stopping: int = 0
 
 		self.model_name = model_name
-		self.model_kwargs = model_args
+		self.model_args = model_args
+		self.device: torch.cuda.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 		self.model: torch.nn.Module = self._construct_model()
 
-		self.criterion: torch.nn.modules.loss = getattr(torch.nn, criterion)
-		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer)(self.model.parameters())
-		self.device: torch.cuda.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+		self.criterion_name = criterion_name
+		self.criterion: torch.nn.modules.loss = getattr(torch.nn, self.criterion_name)
+
+		self.optimizer_name = optimizer_name
+		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer_name)(self.model.parameters())
 
 		self._best_val_loss: float = float('inf')
 
@@ -104,8 +111,8 @@ class Trainer:
 		module = importlib.util.module_from_spec(spec)
 		spec.loader.exec_module(module)
 		model_class = getattr(module, self.model_name)
-		model = model_class(**self.model_kwargs)
-		print(summary(self.model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1])))
+		model = model_class(**self.model_args)
+		print(summary(model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1])))
 
 		return model.to(self.device)
 
@@ -116,8 +123,31 @@ class Trainer:
 		self.info_path = os.path.join(self.model_dir, 'trainer_info.yaml')
 		if not os.path.exists(self.model_dir):
 			os.makedirs(self.model_dir)
-
-		utils.update_json(self.info_path, vars(self).copy())
+		trainer_info = {  # TODO: USE INTROSPECTION SOMEHHOW!
+			'features_path': self.features_path,
+			'targets_path': self.targets_path,
+			'train_percent': self.train_percent,
+			'val_percent': self.val_percent,
+			'feature_win': self.feature_win,
+			'target_win': self.target_win,
+			'intersect': self.intersect,
+			'batch_size': self.batch_size,
+			'model_name': self.model_name,
+			'model_args': self.model_args,
+			'exp_name': self.exp_name,
+			'optimizer_name': self.optimizer_name,
+			'criterion_name': self.criterion_name,
+			'patience': self.patience,
+			'patience_tolerance': self.patience_tolerance,
+			'n_epochs': self.n_epochs,
+			'seed': self.seed,
+			'features_norm_method': self.features_norm_method,
+			'targets_norm_method': self.targets_norm_method,
+			'features_global_normalization': self.features_global_normalization,
+			'targets_global_normalizer': self.targets_global_normalizer,
+			'flip_history': self.flip_history
+		}
+		utils.update_json(self.info_path, trainer_info)
 
 	def _set_loaders(self):
 		""" sets the train/val/test loaders and updates the training statistics in the yaml (for normalization)  """
