@@ -199,7 +199,7 @@ class Seq2Seq(nn.Module):
 
 	def __str__(self) -> str:
 		return (
-			f'Input[{self.input_dim}]'
+			f'Input{self.input_dim}'
 			f'seq2seq[{self.target_lag},'
 			f'{self.enc_embedding_size},'
 			f'{self.enc_hidden_size},'

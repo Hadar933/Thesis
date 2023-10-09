@@ -1,7 +1,7 @@
-from ML.Zoo import seq2seq
+import os
+
 from ML.Core.trainer import Trainer
 import torch
-import torch.nn as nn
 
 if __name__ == '__main__':
 	exp_time = '22_09_2023'
@@ -23,8 +23,10 @@ if __name__ == '__main__':
 	targets_global_norm = True
 	flip_history = True
 
-	forces_path = r'E:\Hadar\experiments\22_09_2023\forces.pt'
-	kinematics_path = r'E:\Hadar\experiments\22_09_2023\kinematics.pt'
+	use_hard_drive = False
+	parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
+	forces_path = os.path.join(parent_dirname, exp_time, 'forces.pt')
+	kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics.pt')
 
 	forces, kinematics = torch.load(forces_path), torch.load(kinematics_path)
 	input_size, output_size = forces.shape[-1], kinematics.shape[-1]
@@ -34,10 +36,10 @@ if __name__ == '__main__':
 
 	seq2seq_name = 'Seq2Seq'
 
-	for emb_size in [8, 16, 32, 64, 128, 256]:
-		for hid_size in [8, 16, 32, 64, 128, 256]:
-			for fwin in [64, 128, 256, 512]:
-				for nlayers in [1, 2, 3]:
+	for emb_size in [2]:
+		for hid_size in [2]:
+			for fwin in [2]:
+				for nlayers in [1]:
 					exp_name = f""
 					seq2seq_args = dict(
 						input_dim=input_dim,
@@ -59,7 +61,7 @@ if __name__ == '__main__':
 						target_win=target_win,
 						intersect=intersect,
 						batch_size=batch_size,
-						model_name=seq2seq_name,
+						model_class_name=seq2seq_name,
 						model_args=seq2seq_args,
 						exp_name=exp_name,
 						optimizer_name=optimizer,

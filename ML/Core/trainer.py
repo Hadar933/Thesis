@@ -9,7 +9,6 @@ import torch
 from tqdm import tqdm
 import os
 from ML.Utilities.normalizer import NormalizerFactory
-from typing import Union
 from torchinfo import summary
 
 
@@ -29,7 +28,7 @@ class Trainer:
 			target_win: int,
 			intersect: int,
 			batch_size: int,
-			model_name: str,
+			model_class_name: str,
 			model_args: dict,
 			exp_name: str,
 			optimizer_name: str,
@@ -64,11 +63,11 @@ class Trainer:
 		self.features_normalizer = NormalizerFactory.create(features_norm_method, features_global_normalizer)
 		self.targets_normalizer = NormalizerFactory.create(targets_norm_method, targets_global_normalizer)
 
-		self.flip_history = flip_history
-		self.features_path = features_path
-		self.targets_path = targets_path
-		self.features = torch.load(features_path).float()
-		self.targets = torch.load(targets_path).float()
+		self.flip_history: bool = flip_history
+		self.features_path: str = features_path
+		self.targets_path: str = targets_path
+		self.features: torch.Tensor = torch.load(features_path).float()
+		self.targets: torch.Tensor = torch.load(targets_path).float()
 		if self.flip_history:  # fliplr is an alternative to [:,::-1,:], which is not yet supported as is in torch
 			self.features = torch.fliplr(self.features)
 			self.targets = torch.fliplr(self.targets)
@@ -78,22 +77,22 @@ class Trainer:
 		self._stop_training: bool = False
 		self._early_stopping: int = 0
 
-		self.model_name = model_name
-		self.model_args = model_args
+		self.model_class_name: str = model_class_name
+		self.model_args: dict = model_args
 		self.device: torch.cuda.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 		self.model: torch.nn.Module = self._construct_model()
 
-		self.criterion_name = criterion_name
-		self.criterion: torch.nn.modules.loss = getattr(torch.nn, self.criterion_name)
+		self.criterion_name: str = criterion_name
+		self.criterion: torch.nn.modules.loss = getattr(torch.nn, self.criterion_name)()
 
-		self.optimizer_name = optimizer_name
+		self.optimizer_name: str = optimizer_name
 		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer_name)(self.model.parameters())
 
-		self._best_val_loss: float = float('inf')
+		self._best_val_loss: float | torch.Tensor = float('inf')
 
 		self.n_epochs: int = n_epochs
 
-		self._tb_writer: Union[SummaryWriter, None] = None
+		self._tb_writer: SummaryWriter | None = None
 
 		self.model_dir: str = ""
 		self.best_model_path: str = ""
@@ -103,16 +102,16 @@ class Trainer:
 		self.train_loader, self.val_loader, self.all_test_loaders = self._set_loaders()
 
 	def _construct_model(self):
-		file_path = os.path.join('Zoo', f'{self.model_name}.py')
+		file_path = os.path.join('Zoo', f'{self.model_class_name}.py')
 		if not os.path.exists(file_path):
 			raise FileNotFoundError(f"The model file '{file_path}' does not exist")
 
-		spec = importlib.util.spec_from_file_location(self.model_name, file_path)
+		spec = importlib.util.spec_from_file_location(self.model_class_name, file_path)
 		module = importlib.util.module_from_spec(spec)
 		spec.loader.exec_module(module)
-		model_class = getattr(module, self.model_name)
+		model_class = getattr(module, self.model_class_name)
 		model = model_class(**self.model_args)
-		print(summary(model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1])))
+		summary(model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1]))
 
 		return model.to(self.device)
 
@@ -123,7 +122,7 @@ class Trainer:
 		self.info_path = os.path.join(self.model_dir, 'trainer_info.yaml')
 		if not os.path.exists(self.model_dir):
 			os.makedirs(self.model_dir)
-		trainer_info = {  # TODO: USE INTROSPECTION SOMEHHOW!
+		trainer_info = {  # TODO: USE INTROSPECTION!
 			'features_path': self.features_path,
 			'targets_path': self.targets_path,
 			'train_percent': self.train_percent,
@@ -132,7 +131,7 @@ class Trainer:
 			'target_win': self.target_win,
 			'intersect': self.intersect,
 			'batch_size': self.batch_size,
-			'model_name': self.model_name,
+			'model_name': self.model_class_name,
 			'model_args': self.model_args,
 			'exp_name': self.exp_name,
 			'optimizer_name': self.optimizer_name,
@@ -143,7 +142,7 @@ class Trainer:
 			'seed': self.seed,
 			'features_norm_method': self.features_norm_method,
 			'targets_norm_method': self.targets_norm_method,
-			'features_global_normalization': self.features_global_normalization,
+			'features_global_normalizer': self.features_global_normalization,
 			'targets_global_normalizer': self.targets_global_normalizer,
 			'flip_history': self.flip_history
 		}
@@ -220,9 +219,12 @@ class Trainer:
 			if self._stop_training:
 				break
 			prev_val_loss = val_avg_loss
-		utils.update_json(self.info_path, {"early_stopping": self._early_stopping,
-										   "best_val_loss": self._best_val_loss.item(),
-										   "best_model_path": self.best_model_path})
+		fit_info = {
+			"early_stopping": self._early_stopping,
+			"best_val_loss": self._best_val_loss.item(),
+			"best_model_path": self.best_model_path
+		}
+		utils.update_json(self.info_path, fit_info)
 
 	def predict(self) -> pd.DataFrame:
 		""" creates a prediction for every test loader in our test loaders list """
