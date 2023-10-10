@@ -4,6 +4,10 @@ from ML.Core.trainer import Trainer
 import torch
 
 if __name__ == '__main__':
+
+	t = Trainer.from_model_dirname(
+		r"G:\My Drive\Master\Lab\Thesis\ML\saved_models\Input(256, 120, 3)seq2seq[1,2,2,1,True,2,2,2]__2023-10-10_14-05-42"
+	)
 	exp_time = '22_09_2023'
 	train_percent = 0.85
 	val_percent = 0.1
@@ -24,7 +28,7 @@ if __name__ == '__main__':
 	flip_history = True
 
 	use_hard_drive = False
-	parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
+	parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '..\\Results'
 	forces_path = os.path.join(parent_dirname, exp_time, 'forces.pt')
 	kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics.pt')
 

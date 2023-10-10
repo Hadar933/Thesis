@@ -11,6 +11,8 @@ from tqdm import tqdm
 import os
 from ML.Utilities.normalizer import NormalizerFactory
 import torchinfo
+import numpy as np
+import random
 
 
 class Trainer:
@@ -44,7 +46,7 @@ class Trainer:
 			targets_global_normalizer: bool,
 			flip_history: bool
 	):
-		torch.manual_seed(seed)  # TODO: doesnt seem to do anything
+		self._set_seed(seed)  # TODO: check if this does anything
 
 		self.init_args = {key: val for key, val in locals().copy().items() if key != 'self'}
 		for key, val in self.init_args.items():
@@ -73,6 +75,11 @@ class Trainer:
 
 		self._create_model_dir()
 		self.train_loader, self.val_loader, self.all_test_loaders = self._set_loaders()
+
+	def _set_seed(self, seed) -> None:
+		torch.manual_seed(seed)
+		np.random.seed(seed)
+		random.seed(seed)
 
 	def _save_init_args(self, init_locals):
 		local_vars = dict()
