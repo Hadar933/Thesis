@@ -1,4 +1,5 @@
 import importlib.util
+import inspect
 import json
 from datetime import datetime
 from ML.Utilities import utils
@@ -9,7 +10,7 @@ import torch
 from tqdm import tqdm
 import os
 from ML.Utilities.normalizer import NormalizerFactory
-from torchinfo import summary
+import torchinfo
 
 
 class Trainer:
@@ -44,62 +45,48 @@ class Trainer:
 			flip_history: bool
 	):
 		torch.manual_seed(seed)  # TODO: doesnt seem to do anything
-		self.seed = seed
-		self.feature_win = feature_win
-		self.target_win = target_win
-		self.intersect = intersect
 
-		self.batch_size = batch_size
+		self.init_args = {key: val for key, val in locals().copy().items() if key != 'self'}
+		for key, val in self.init_args.items():
+			setattr(self, key, val)
 
-		self.val_percent = val_percent
-		self.train_percent = train_percent
-
-		self.exp_name = exp_name
-
-		self.features_norm_method = features_norm_method
-		self.features_global_normalization = features_global_normalizer
-		self.targets_norm_method = targets_norm_method
-		self.targets_global_normalizer = targets_global_normalizer
-		self.features_normalizer = NormalizerFactory.create(features_norm_method, features_global_normalizer)
-		self.targets_normalizer = NormalizerFactory.create(targets_norm_method, targets_global_normalizer)
-
-		self.flip_history: bool = flip_history
-		self.features_path: str = features_path
-		self.targets_path: str = targets_path
-		self.features: torch.Tensor = torch.load(features_path).float()
-		self.targets: torch.Tensor = torch.load(targets_path).float()
-		if self.flip_history:  # fliplr is an alternative to [:,::-1,:], which is not yet supported as is in torch
-			self.features = torch.fliplr(self.features)
-			self.targets = torch.fliplr(self.targets)
-
-		self.patience_tolerance: float = patience_tolerance
-		self.patience: int = patience
 		self._stop_training: bool = False
 		self._early_stopping: int = 0
-
-		self.model_class_name: str = model_class_name
-		self.model_args: dict = model_args
-		self.device: torch.cuda.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-		self.model: torch.nn.Module = self._construct_model()
-
-		self.criterion_name: str = criterion_name
-		self.criterion: torch.nn.modules.loss = getattr(torch.nn, self.criterion_name)()
-
-		self.optimizer_name: str = optimizer_name
-		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer_name)(self.model.parameters())
-
 		self._best_val_loss: float | torch.Tensor = float('inf')
-
-		self.n_epochs: int = n_epochs
-
 		self._tb_writer: SummaryWriter | None = None
 
 		self.model_dir: str = ""
 		self.best_model_path: str = ""
 		self.info_path = ""
-		self._create_model_dir()
 
+		self.features_normalizer = NormalizerFactory.create(features_norm_method, features_global_normalizer)
+		self.targets_normalizer = NormalizerFactory.create(targets_norm_method, targets_global_normalizer)
+		self.features: torch.Tensor = torch.load(features_path).float()
+		self.targets: torch.Tensor = torch.load(targets_path).float()
+		if flip_history:  # fliplr is an alternative to [:,::-1,:], which is not yet supported as is in torch
+			self.features = torch.fliplr(self.features)
+			self.targets = torch.fliplr(self.targets)
+		self.device: torch.cuda.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+		self.model: torch.nn.Module = self._construct_model()
+		self.criterion: torch.nn.modules.loss = getattr(torch.nn, self.criterion_name)()
+		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer_name)(self.model.parameters())
+
+		self._create_model_dir()
 		self.train_loader, self.val_loader, self.all_test_loaders = self._set_loaders()
+
+	def _save_init_args(self, init_locals):
+		local_vars = dict()
+		for key, val in init_locals.items():
+			if (
+					key == 'self' or
+					key.startswith('__') or
+					inspect.ismodule(val) or
+					inspect.isclass(val) or
+					inspect.isfunction(val)
+			):
+				continue
+			local_vars[key] = val
+		return local_vars
 
 	def _construct_model(self):
 		file_path = os.path.join('Zoo', f'{self.model_class_name}.py')
@@ -111,7 +98,7 @@ class Trainer:
 		spec.loader.exec_module(module)
 		model_class = getattr(module, self.model_class_name)
 		model = model_class(**self.model_args)
-		summary(model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1]))
+		torchinfo.summary(model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1]))
 
 		return model.to(self.device)
 
@@ -122,31 +109,31 @@ class Trainer:
 		self.info_path = os.path.join(self.model_dir, 'trainer_info.yaml')
 		if not os.path.exists(self.model_dir):
 			os.makedirs(self.model_dir)
-		trainer_info = {  # TODO: USE INTROSPECTION!
-			'features_path': self.features_path,
-			'targets_path': self.targets_path,
-			'train_percent': self.train_percent,
-			'val_percent': self.val_percent,
-			'feature_win': self.feature_win,
-			'target_win': self.target_win,
-			'intersect': self.intersect,
-			'batch_size': self.batch_size,
-			'model_name': self.model_class_name,
-			'model_args': self.model_args,
-			'exp_name': self.exp_name,
-			'optimizer_name': self.optimizer_name,
-			'criterion_name': self.criterion_name,
-			'patience': self.patience,
-			'patience_tolerance': self.patience_tolerance,
-			'n_epochs': self.n_epochs,
-			'seed': self.seed,
-			'features_norm_method': self.features_norm_method,
-			'targets_norm_method': self.targets_norm_method,
-			'features_global_normalizer': self.features_global_normalization,
-			'targets_global_normalizer': self.targets_global_normalizer,
-			'flip_history': self.flip_history
-		}
-		utils.update_json(self.info_path, trainer_info)
+		# trainer_info = {  # TODO: USE INTROSPECTION!
+		# 	'features_path': self.features_path,
+		# 	'targets_path': self.targets_path,
+		# 	'train_percent': self.train_percent,
+		# 	'val_percent': self.val_percent,
+		# 	'feature_win': self.feature_win,
+		# 	'target_win': self.target_win,
+		# 	'intersect': self.intersect,
+		# 	'batch_size': self.batch_size,
+		# 	'model_name': self.model_class_name,
+		# 	'model_args': self.model_args,
+		# 	'exp_name': self.exp_name,
+		# 	'optimizer_name': self.optimizer_name,
+		# 	'criterion_name': self.criterion_name,
+		# 	'patience': self.patience,
+		# 	'patience_tolerance': self.patience_tolerance,
+		# 	'n_epochs': self.n_epochs,
+		# 	'seed': self.seed,
+		# 	'features_norm_method': self.features_norm_method,
+		# 	'targets_norm_method': self.targets_norm_method,
+		# 	'features_global_normalizer': self.features_global_normalization,
+		# 	'targets_global_normalizer': self.targets_global_normalizer,
+		# 	'flip_history': self.flip_history
+		# }
+		utils.update_json(self.info_path, self.init_args)
 
 	def _set_loaders(self):
 		""" sets the train/val/test loaders and updates the training statistics in the yaml (for normalization)  """
