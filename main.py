@@ -6,8 +6,9 @@ from tqdm import tqdm
 
 import Camera.main
 import Forces.main
-import Preprocess.trigger
-import Preprocess.preprocess
+import DataHandler.trigger
+import DataHandler.preprocess
+from DataHandler import encoders, preprocess
 
 if __name__ == '__main__':
 
@@ -42,6 +43,9 @@ if __name__ == '__main__':
 	merging_smooth_kernel_size = 10
 	bad_dirs = []
 
+	encoder = encoders.Encoder(['angle', 'torque'])
+	preprocessor = preprocess.Preprocess(['interpolate', 'resample'])
+
 	# the subdirectories of experiment names have the same names for cam2, cam3 we use cam2 w.l.o.g
 	photos_subdirs_name = sorted(os.listdir(f'{parent_dirname}\\experiments\\{exp_date}\\cam2'))
 	for curr_subdir_name in tqdm(photos_subdirs_name):
@@ -70,7 +74,7 @@ if __name__ == '__main__':
 		angles_df = angles_df[start_from:].reset_index(drop=True)
 		forces_df = forces_df[start_from:].reset_index(drop=True)
 
-		df = Preprocess.trigger.merge_data(
+		df = DataHandler.trigger.merge_data(
 			trajectory_3d=trajectory_3d,
 			angles_df=angles_df,
 			forces_df=forces_df,
@@ -86,8 +90,8 @@ if __name__ == '__main__':
 			if input('Is this one bad? [y/Any]') == 'y':
 				continue
 
-		df = Preprocess.preprocess.interpolate(df)
-		df = Preprocess.preprocess.resample(df)
+		df = preprocessor.run(df)
+		df = encoder.run(df)
 
 		angles_lst.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
 		forces_lst.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
