@@ -38,10 +38,13 @@ def triangulate(
 
 
 def evaluate_3d_distances(
-		proj2_path: str, proj3_path: str,
-		im2_path: str, im3_path: str,
-		real_dist: float = None,
-		crop_params2_path: Optional[str] = None, crop_params3_path: Optional[str] = None
+		proj2_path: str,
+		proj3_path: str,
+		im2_path: str,
+		im3_path: str,
+		real_dist: float | None = None,
+		crop_params2_path: str | None = None,
+		crop_params3_path: str | None = None
 ) -> None:
 	"""
 	measures the distance between two points on an image
@@ -119,7 +122,6 @@ def xyz2euler(trajectories_3d: np.ndarray) -> np.ndarray:
 	#          - theta : elevation angle
 	#          - phi: stroke angle
 	#          - psi: pitch angle
-	# TODO: fix according to Roni's code
 	# """
 	xy_plane = (0, 0, 1, 0)  # Z = 0
 	xz_plane = (0, 1, 0, 0)  # Y = 0 (stroke plane)
@@ -156,7 +158,7 @@ def normalize_vector(v):
 def angle_between_vectors(u: np.ndarray, v: np.ndarray) -> np.ndarray:
 	""" returns the angle between u and v for two vectors.
 	 supports two cases for vector v - either a single vector (usually unit vector e_i) or a matrix (n,3)
-	 """
+	"""
 	if len(v.shape) == 1:
 		norm = np.arccos(np.dot(u, v) / (np.linalg.norm(v) * np.linalg.norm(u, axis=1)))
 	else:
