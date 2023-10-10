@@ -43,8 +43,8 @@ if __name__ == '__main__':
 	merging_smooth_kernel_size = 10
 	bad_dirs = []
 
-	encoder = encoders.Encoder(['angle', 'torque'])
-	preprocessor = preprocess.Preprocess(['interpolate', 'resample'])
+	preprocessor = preprocess.Preprocess(['interpolate', 'resample', 'drop'])
+	encoder = encoders.Encoder(['torque'])
 
 	# the subdirectories of experiment names have the same names for cam2, cam3 we use cam2 w.l.o.g
 	photos_subdirs_name = sorted(os.listdir(f'{parent_dirname}\\experiments\\{exp_date}\\cam2'))
