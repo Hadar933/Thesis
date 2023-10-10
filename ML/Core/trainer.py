@@ -116,30 +116,6 @@ class Trainer:
 		self.info_path = os.path.join(self.model_dir, 'trainer_info.yaml')
 		if not os.path.exists(self.model_dir):
 			os.makedirs(self.model_dir)
-		# trainer_info = {  # TODO: USE INTROSPECTION!
-		# 	'features_path': self.features_path,
-		# 	'targets_path': self.targets_path,
-		# 	'train_percent': self.train_percent,
-		# 	'val_percent': self.val_percent,
-		# 	'feature_win': self.feature_win,
-		# 	'target_win': self.target_win,
-		# 	'intersect': self.intersect,
-		# 	'batch_size': self.batch_size,
-		# 	'model_name': self.model_class_name,
-		# 	'model_args': self.model_args,
-		# 	'exp_name': self.exp_name,
-		# 	'optimizer_name': self.optimizer_name,
-		# 	'criterion_name': self.criterion_name,
-		# 	'patience': self.patience,
-		# 	'patience_tolerance': self.patience_tolerance,
-		# 	'n_epochs': self.n_epochs,
-		# 	'seed': self.seed,
-		# 	'features_norm_method': self.features_norm_method,
-		# 	'targets_norm_method': self.targets_norm_method,
-		# 	'features_global_normalizer': self.features_global_normalization,
-		# 	'targets_global_normalizer': self.targets_global_normalizer,
-		# 	'flip_history': self.flip_history
-		# }
 		utils.update_json(self.info_path, self.init_args)
 
 	def _set_loaders(self):
