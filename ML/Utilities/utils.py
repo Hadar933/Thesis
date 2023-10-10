@@ -171,20 +171,27 @@ def train_val_test_split(features: np.ndarray, targets: np.ndarray,
 
 def format_df_torch_entries(df: pd.DataFrame):
     """ takes in a df where every entry is a torch tensor and returns a new df with unpacked tensor values as cols """
-    old_cols = df.columns
+    old_cols = df.columns.tolist()
+    new_df = pd.DataFrame()
 
     def create_new_columns(row, col_name):
         tensor = row[col_name]
-        new_cols = pd.Series(tensor.numpy())
-        new_col_names = [f"{col_name}_{i}" for i in range(len(tensor))]
-        return pd.Series(dict(zip(new_col_names, new_cols)))
+        if tensor.dim() == 0:
+            # If the tensor is a scalar, handle it as a special case
+            new_col_names = [col_name]
+            new_cols = [tensor.item()]
+        else:
+            # If the tensor is not a scalar, proceed as before
+            new_col_names = [f"{col_name}_{i}" for i in range(len(tensor))]
+            new_cols = tensor.numpy().tolist()
+        return pd.Series(new_cols, index=new_col_names)
 
-    for col_name in df.columns:
+    for col_name in old_cols:
         if col_name.startswith('pred_') or col_name.startswith('true_'):
-            new_cols = df.apply(create_new_columns, args=(col_name,), axis=1)
-            df[new_cols.columns] = new_cols
-    df = df.drop(columns=old_cols, axis=1)
-    return df
+            new_cols = df.apply(lambda row: create_new_columns(row, col_name), axis=1)
+            new_df = pd.concat([new_df, new_cols], axis=1)
+
+    return new_df
 
 
 def visualize_attention(model: Seq2Seq, test_loader) -> pd.DataFrame:
@@ -246,3 +253,12 @@ def plot_with_background(x_values: torch.Tensor, y_values: torch.Tensor, w_value
     image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     plt.close(fig)
     return image
+
+
+if __name__ == '__main__':
+    df = pd.DataFrame({
+        'pred_A': [torch.tensor([1,2]), torch.tensor([3,4])],
+        'pred_B': [torch.tensor([5,6]), torch.tensor([7,8])]
+    })
+    df1 = format_df_torch_entries(df)
+    z=2
