@@ -74,7 +74,7 @@ def read_data(data_path: str) -> pd.DataFrame:
 
 
 def load_data_from_prssm_paper(
-        path: str = "G:\\My Drive\\Master\\Lab\\Thesis\\Preprocess\\flapping_wing_aerodynamics.mat",
+        path: str = "G:\\My Drive\\Master\\Lab\\Thesis\\DataHandler\\flapping_wing_aerodynamics.mat",
         kinematics_key: Literal['ds_pos', 'ds_u_raw', 'ds_u'] = "ds_pos",
         forces_key: Literal['ds_y_raw', 'ds_y'] = "ds_y_raw",
         return_all: bool = False,
@@ -98,7 +98,7 @@ def load_data_from_prssm_paper(
     try:
         mat: Dict = scipy.io.loadmat(path)
     except FileNotFoundError:
-        mat: Dict = scipy.io.loadmat("Preprocess/flapping_wing_aerodynamics.mat")
+        mat: Dict = scipy.io.loadmat("DataHandler/flapping_wing_aerodynamics.mat")
     if return_all: return mat
     kinematics = torch.Tensor(mat[kinematics_key])
     forces = torch.Tensor(mat[forces_key])
