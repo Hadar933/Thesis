@@ -6,14 +6,13 @@ import torch
 from ML.Utilities import utils
 
 if __name__ == '__main__':
-
-    exp_time = '22_09_2023'
+    exp_time = '10_10_2023'
     train_percent = 0.85
     val_percent = 0.1
-    feature_win = 120
+    feature_win = 512
     target_win = 1
     intersect = 0
-    batch_size = 256
+    batch_size = 512
     n_epochs = 20
     seed = 3407
     criterion = 'L1Loss'
@@ -28,8 +27,8 @@ if __name__ == '__main__':
 
     use_hard_drive = False
     parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
-    forces_path = os.path.join(parent_dirname, exp_time, 'forces.pt')
-    kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics.pt')
+    forces_path = os.path.join(parent_dirname, exp_time, 'forces_small.pt')
+    kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics_small.pt')
 
     forces, kinematics = torch.load(forces_path), torch.load(kinematics_path)
     input_size, output_size = forces.shape[-1], kinematics.shape[-1]
@@ -37,12 +36,14 @@ if __name__ == '__main__':
     del forces
     del kinematics
 
-    model_class_name = 'MLP'
+    seq2seq_name = 'Seq2Seq'
+    mlp_name = 'MLP'
+    rnn_name = 'RNN'
 
     for emb_size in [6]:
-        for hid_size in [6]:
-            for nlayers in [1]:
-                exp_name = f""
+        for hid_size in [16]:
+            for nlayers in [2]:
+                exp_name = f"smaller_datasets"
                 seq2seq_args = dict(
                     input_dim=input_dim,
                     target_lag=target_win,
@@ -58,7 +59,16 @@ if __name__ == '__main__':
                     input_size=input_size,
                     history_size=feature_win,
                     output_size=output_size,
-                    hidden_dims_list=[20, 30, 20]
+                    hidden_dims_list=[30, 50, 30]
+                )
+                rnn_args = dict(
+                    type='gru',
+                    input_size=input_size,
+                    output_size=output_size,
+                    hidden_dim=hid_size,
+                    num_layers=nlayers,
+                    dropout=0.05,
+                    bidirectional=False
                 )
                 trainer = Trainer(
                     features_path=forces_path,
@@ -69,8 +79,8 @@ if __name__ == '__main__':
                     target_win=target_win,
                     intersect=intersect,
                     batch_size=batch_size,
-                    model_class_name=model_class_name,
-                    model_args=mlp_args,
+                    model_class_name=rnn_name,
+                    model_args=rnn_args,
                     exp_name=exp_name,
                     optimizer_name=optimizer,
                     criterion_name=criterion,
