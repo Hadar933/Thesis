@@ -6,7 +6,7 @@ import torch
 from ML.Utilities import utils
 
 if __name__ == '__main__':
-    exp_time = '10_10_2023'
+    exp_time = 'prssm'
     train_percent = 0.85
     val_percent = 0.1
     feature_win = 512
@@ -27,8 +27,8 @@ if __name__ == '__main__':
 
     use_hard_drive = False
     parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
-    forces_path = os.path.join(parent_dirname, exp_time, 'forces_small.pt')
-    kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics_small.pt')
+    forces_path = os.path.join(parent_dirname, exp_time, 'forces.pt')
+    kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics.pt')
 
     forces, kinematics = torch.load(forces_path), torch.load(kinematics_path)
     input_size, output_size = forces.shape[-1], kinematics.shape[-1]
@@ -40,10 +40,10 @@ if __name__ == '__main__':
     mlp_name = 'MLP'
     rnn_name = 'RNN'
 
-    for emb_size in [6]:
-        for hid_size in [16]:
-            for nlayers in [2]:
-                exp_name = f"smaller_datasets"
+    for emb_size in [1]:
+        for hid_size in [1]:
+            for nlayers in [1]:
+                exp_name = f"prssm_test"
                 seq2seq_args = dict(
                     input_dim=input_dim,
                     target_lag=target_win,
@@ -97,4 +97,4 @@ if __name__ == '__main__':
                 trainer.fit()
 
     preds = trainer.predict()
-    utils.plot(preds)
+    utils.plot_df_with_plotly(preds)

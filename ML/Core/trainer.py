@@ -49,7 +49,7 @@ class Trainer:
 		self._set_seed(seed)  # TODO: check if this does anything
 
 		self.init_args = {key: val for key, val in locals().copy().items() if key != 'self'}
-		#TODO: bug with undesired saving of early_stopping
+		# TODO: bug with undesired saving of early_stopping
 		for key, val in self.init_args.items():
 			setattr(self, key, val)
 
@@ -107,7 +107,7 @@ class Trainer:
 		model_class = getattr(module, self.model_class_name)
 		model = model_class(**self.model_args)
 		if self.model_class_name.lower() == 'mlp':
-			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win* self.features.shape[-1]))
+			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win * self.features.shape[-1]))
 		else:
 			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1]))
 		return model.to(self.device)
@@ -123,9 +123,18 @@ class Trainer:
 
 	def _set_loaders(self):
 		""" sets the train/val/test loaders and updates the training statistics in the yaml (for normalization)  """
-		data_dict = utils.train_val_test_split(self.features, self.targets, self.train_percent, self.val_percent,
-											   self.feature_win, self.target_win, self.intersect, self.batch_size,
-											   self.features_normalizer, self.targets_normalizer)
+		data_dict = utils.train_val_test_split(
+			features=self.features,
+			targets=self.targets,
+			train_percent=self.train_percent,
+			val_percent=self.val_percent,
+			feature_window_size=self.feature_win,
+			target_window_size=self.target_win,
+			intersect_size=self.intersect,
+			batch_size=self.batch_size,
+			features_normalizer=self.features_normalizer,
+			targets_normalizer=self.targets_normalizer
+		)
 		return data_dict['train']['loader'], data_dict['val']['loader'], data_dict['test']['loader']
 
 	def _train_one_epoch(self, epoch: int) -> float:
