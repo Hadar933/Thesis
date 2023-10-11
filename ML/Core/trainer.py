@@ -49,6 +49,7 @@ class Trainer:
 		self._set_seed(seed)  # TODO: check if this does anything
 
 		self.init_args = {key: val for key, val in locals().copy().items() if key != 'self'}
+		#TODO: bug with undesired saving of early_stopping
 		for key, val in self.init_args.items():
 			setattr(self, key, val)
 
@@ -105,9 +106,10 @@ class Trainer:
 		spec.loader.exec_module(module)
 		model_class = getattr(module, self.model_class_name)
 		model = model_class(**self.model_args)
-		if self.model_class_name.lower() != 'mlp':
+		if self.model_class_name.lower() == 'mlp':
+			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win* self.features.shape[-1]))
+		else:
 			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1]))
-
 		return model.to(self.device)
 
 	def _create_model_dir(self):
@@ -217,6 +219,12 @@ class Trainer:
 
 	@classmethod
 	def from_model_dirname(cls, model_dirname):
+		"""
+		Initializes a trainer instance using the trainer_info defined with the model provided in model_dirname.
+		This way, a trained model can be loaded with the trainer that was specifically instantiated for it,
+		:param model_dirname: path to the dirname containing the model.pt file and trainer_info.yaml file
+		:return: the trainer object
+		"""
 		model_pt_path = ""
 		trainer_yaml_path = ""
 		for file_name in os.listdir(model_dirname):
@@ -229,6 +237,5 @@ class Trainer:
 			trainer_args = json.load(f)
 
 		trainer = cls(**trainer_args)
-		trainer.model = trainer.model.load_state_dict(torch.load(model_pt_path, map_location=trainer.device))
-		trainer.model.eval()
+		trainer.model.load_state_dict(torch.load(model_pt_path, map_location=trainer.device))
 		return trainer
