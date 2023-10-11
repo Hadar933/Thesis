@@ -2,11 +2,11 @@
 % that were chosen with mouse user input
 
 clear;
-stereoParams = load('G:\My Drive\Master\Lab\Thesis\Camera\calibrations\01_08_2023\stereoParams.mat');
+stereoParams = load('G:\My Drive\Master\Lab\Thesis\Camera\calibrations\22_08_2023\stereoParams.mat');
 stereoParams = stereoParams.stereoParams;
 
-I1 = imread('G:\My Drive\Master\Lab\Thesis\Camera\experiments\01_08_2023\cam2\cropped\Img000001.jpg');
-I2 = imread('G:\My Drive\Master\Lab\Thesis\Camera\experiments\01_08_2023\cam3\cropped\Img000001.jpg');
+I1 = imread("E:\Hadar\experiments\22_08_2023\cam2\photos\Img000000.jpg");
+I2 = imread("E:\Hadar\experiments\22_08_2023\cam3\photos\Img000000.jpg");
 
 %I1 = undistortImage(I1,stereoParams.CameraParameters1);
 %I2 = undistortImage(I2,stereoParams.CameraParameters2);
@@ -38,8 +38,8 @@ p2 = ginput(2);
 close;
 
 % add crop params
-p1 = p1 + [889,351];
-p2 = p2 + [27,310];
+% p1 = p1 + [889,351];
+% p2 = p2 + [27,310];
 
 
 points_3d = triangulate(p1,p2,stereoParams);
