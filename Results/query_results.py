@@ -12,7 +12,7 @@ matplotlib.use('TkAgg')
 
 
 def results_plotter(kinematics_path, forces_path):
-	# Load data from files
+	""" an interactive dash plot for the kinematics and forces torch tensors """
 	kinematics = torch.load(kinematics_path)
 	forces = torch.load(forces_path)
 	app = dash.Dash(__name__)
@@ -31,6 +31,7 @@ def results_plotter(kinematics_path, forces_path):
 		[Input('dataset-dropdown', 'value')]
 	)
 	def update_graph(selected_dataset):
+		""" updates the graph based on the dataset index chosen in the dropdown menu """
 		phi_trace = go.Scatter(y=kinematics[selected_dataset, :, 0].numpy(), mode='lines', name='phi')
 		psi_trace = go.Scatter(y=kinematics[selected_dataset, :, 1].numpy(), mode='lines', name='psi')
 		force_traces = [go.Scatter(y=forces[selected_dataset, :, i].numpy(), mode='lines', name=f'F{i + 1}') for i in
@@ -45,6 +46,7 @@ def results_plotter(kinematics_path, forces_path):
 
 
 def filter_results(exp_date: str, f=None, a=None, k=None):
+	""" displays all kinematics datasets from the hard drive that adhere the provided arguments """
 	parent_dir = rf'E:\Hadar\experiments\{exp_date}\results'
 	# Create the search patterns based on provided values
 	f_pattern = f"F={f}" if f is not None else ""
@@ -59,6 +61,7 @@ def filter_results(exp_date: str, f=None, a=None, k=None):
 
 
 def plot_filtered_results(paths, what_to_plot):
+
 	for item in paths:
 		if 'angles' in what_to_plot:
 			data = np.load(os.path.join(item, f"angles.npy"))
