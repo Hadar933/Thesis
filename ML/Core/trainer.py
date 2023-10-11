@@ -201,6 +201,7 @@ class Trainer:
 
 	def predict(self) -> pd.DataFrame:
 		""" creates a prediction for every test loader in our test loaders list """
+		self.model.load_state_dict(torch.load(self.best_model_path, map_location=self.device))
 		self.model.train(False)
 		all_preds = pd.DataFrame()
 		with torch.no_grad():
