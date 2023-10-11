@@ -13,3 +13,4 @@ torchinfo
 psutil
 deprecated
 tensorboard
+dash
