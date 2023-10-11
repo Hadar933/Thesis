@@ -83,7 +83,7 @@ class Encoder:
 			df: pd.DataFrame,
 			**kwargs
 	) -> pd.DataFrame:
-		radius = kwargs.get('encode_torque_radius', 1)
+		radius = kwargs.get('encode_torque_radius', 0.06)  # as measured using to_3d.evaluate_3d_distances
 		logger.info(f'Encoding torque with radius = {radius}')
 		f1, f2, f3, f4 = df['F1'], df['F2'], df['F3'], df['F4']
 		df['torque_x'] = (radius / 2) * ((f1 + f2) - (f3 + f4))
@@ -92,10 +92,11 @@ class Encoder:
 
 
 if __name__ == '__main__':
-	angles = torch.load(r"G:\My Drive\Master\Lab\Thesis\Results\02_10_2023\kinematics.pt")[0]
-	forces = torch.load(r"G:\My Drive\Master\Lab\Thesis\Results\02_10_2023\forces.pt")[0]
+
+	angles = torch.load(r"G:\My Drive\Master\Lab\Thesis\Results\10_10_2023\kinematics.pt")
+	forces = torch.load(r"G:\My Drive\Master\Lab\Thesis\Results\10_10_2023\forces.pt")
 	df = pd.DataFrame(
-		torch.concat([angles, forces], dim=1),
+		torch.concat([angles[0], forces[0]], dim=1),
 		columns=['theta', 'phi', 'psi', 'F1', 'F2', 'F3', 'F4']
 	)
 	enc = Encoder(['angle', 'torque'])
