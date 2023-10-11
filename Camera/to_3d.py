@@ -176,3 +176,12 @@ def angle_between_vector_and_plane(vec, plane) -> np.ndarray:
 	angle_between_vec_and_normal = angle_between_vectors(vec, plane_normal)
 	angle = np.pi / 2 - angle_between_vec_and_normal  # right triangle
 	return angle
+
+
+if __name__ == '__main__':
+	evaluate_3d_distances(
+		proj2_path=r"G:\My Drive\Master\Lab\Thesis\Camera\calibrations\22_09_2023\cameraMatrix1.mat",
+		proj3_path=r"G:\My Drive\Master\Lab\Thesis\Camera\calibrations\22_09_2023\cameraMatrix2.mat",
+		im2_path=r"E:\Hadar\experiments\22_08_2023\cam2\photos\Img000000.jpg",
+		im3_path=r"E:\Hadar\experiments\22_08_2023\cam3\photos\Img000000.jpg"
+	)
