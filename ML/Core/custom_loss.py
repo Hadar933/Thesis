@@ -4,27 +4,18 @@ import torch
 class Loss:
 	@staticmethod
 	def total_variation_l1(signals):
-		diff_signal = torch.sum(torch.abs(signals[:, :, 1:] - signals[:, :, :-1]))
-		return diff_signal
+		return torch.sum(torch.abs(signals[:, :, 1:] - signals[:, :, :-1]))
 
 	@staticmethod
 	def total_variation_mse(signals):
-		diff_signal = torch.sum((signals[:, :, 1:] - signals[:, :, :-1]) ** 2)
-		return diff_signal
+		return torch.sum((signals[:, :, 1:] - signals[:, :, :-1]) ** 2)
 
 	@staticmethod
-	def get_loss_function(name):
-		match name:
-			case 'total_variation_l1':
+	def get_loss_function(loss_name):
+		match loss_name.lower():
+			case 'total_variation_mae' | 'total_variation_l1' | 'tv_l1' | 'tv_mae':
 				return Loss.total_variation_l1
-			case 'total_variation_mse':
+			case 'total_variation_mse' | 'total_variation_l2' | 'tv_l2' | 'tv_mse':
 				return Loss.total_variation_mse
-			case _:
-				raise ValueError(f"Loss function '{name}' not recognized")
-
-
-if __name__ == '__main__':
-	t = torch.randint(0, 10, (2, 2, 3))
-	t1 = t[:, :, 1:]
-	t2 = t[:, :, :-1]
-	z = 1
+			case _:  # tries loading default name from torch
+				getattr(torch.nn, loss_name)()
