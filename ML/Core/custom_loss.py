@@ -9,16 +9,14 @@ class PairwiseVariationLossL1(nn.Module):
 
 	def forward(self, current_prediction):
 		if self.last_prediction is None:
-			self.last_prediction = current_prediction
+			self.last_prediction = current_prediction.detach()
 			return 0
-
-		# Check for size mismatch and adjust if necessary
 		if self.last_prediction.size(0) != current_prediction.size(0):
 			self.last_prediction = self.last_prediction[:current_prediction.size(0)]
-
 		variation = torch.mean(torch.abs(current_prediction - self.last_prediction))
 
-		self.last_prediction = current_prediction
+		# Detach current_prediction before assigning it to self.last_prediction for the next iteration
+		self.last_prediction = current_prediction.detach()
 
 		return variation
 
@@ -30,7 +28,7 @@ class PairwiseVariationLossMSE(nn.Module):
 
 	def forward(self, current_prediction):
 		if self.last_prediction is None:
-			self.last_prediction = current_prediction
+			self.last_prediction = current_prediction.detach()  # detach from the current graph
 			return 0
 
 		# Check for size mismatch and adjust if necessary
@@ -39,7 +37,8 @@ class PairwiseVariationLossMSE(nn.Module):
 
 		variation = torch.mean((current_prediction - self.last_prediction) ** 2)
 
-		self.last_prediction = current_prediction
+		# Detach current_prediction before assigning it to self.last_prediction for the next iteration
+		self.last_prediction = current_prediction.detach()
 
 		return variation
 
