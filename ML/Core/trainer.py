@@ -3,7 +3,7 @@ import inspect
 import json
 from datetime import datetime
 
-from ML.Core.custom_loss import Loss
+from ML.Core.custom_loss import LossFactory
 from ML.Utilities import utils
 import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
@@ -76,20 +76,20 @@ class Trainer:
 		self.model: torch.nn.Module = self._construct_model()
 		self.loss_fn: torch.nn.modules.loss
 		self.regularization_fn: None | callable
-		self._set_criterion()  # setting the loss and regularization functions
+		self._construct_criterion()  # setting the loss and regularization functions
 		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer_name)(self.model.parameters())
 
 		self._create_model_dir()
 		self.train_loader, self.val_loader, self.all_test_loaders = self._set_loaders()
 
-	def _set_criterion(self):
+	def _construct_criterion(self):
 		""" populates the loss and regularization functions based on the provided criterion name """
 		if '+' in self.criterion_name:
 			loss_name, regularization_name = self.criterion_name.replace(' ', '').split('+')
-			self.loss_fn = Loss.get_loss_function(loss_name)
-			self.regularization_fn = Loss.get_loss_function(regularization_name)
+			self.loss_fn = LossFactory.get_loss(loss_name)
+			self.regularization_fn = LossFactory.get_loss(regularization_name)
 		else:
-			self.loss_fn = Loss.get_loss_function(self.criterion_name)
+			self.loss_fn = LossFactory.get_loss(self.criterion_name)
 			self.regularization_fn = lambda x: 0  # just a function that does nothing
 
 	@staticmethod
@@ -140,6 +140,15 @@ class Trainer:
 		)
 		return data_dict['train']['loader'], data_dict['val']['loader'], data_dict['test']['loader']
 
+	def _calc_criterion(self, predictions: torch.Tensor, targets: torch.Tensor):
+		"""
+		calculates the final loss using the loss and regularization functions.
+		Assumes reg term takes only the predictions
+		"""
+		loss_term = self.loss_fn(predictions, targets)
+		regularization_term = self.regularization_fn(predictions)
+		return loss_term + self.regularization_factor * regularization_term
+
 	def _train_one_epoch(self, epoch: int) -> float:
 		""" performs a training process for one epoch """
 		self.model.train(True)
@@ -149,7 +158,7 @@ class Trainer:
 			self.optimizer.zero_grad()
 			inputs, targets = inputs.to(self.device), targets.to(self.device)
 			predictions = self.model(inputs)
-			loss = self.criterion(predictions, targets)
+			loss = self._calc_criterion(predictions, targets)
 			total_loss += loss
 			loss.backward()
 			self.optimizer.step()
@@ -168,7 +177,7 @@ class Trainer:
 			for inputs, targets in tqdm_loader:
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
 				predictions = self.model(inputs)
-				loss = self.criterion(predictions, targets)
+				loss = self._calc_criterion(predictions, targets)
 				total_loss += loss
 				tqdm_loader.set_postfix({'Val Loss': f"{loss.item():.5f}",
 										 'RAM_%': psutil.virtual_memory().percent,
