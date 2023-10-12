@@ -149,9 +149,16 @@ class Trainer:
 		regularization_term = self.regularization_fn(predictions)
 		return loss_term + self.regularization_factor * regularization_term
 
+	def _reset_loss_state(self):
+		
+		for foo in [self.regularization_fn, self.loss_fn]:
+			if hasattr(foo, 'reset_state'):
+				foo.reset_state()
+
 	def _train_one_epoch(self, epoch: int) -> float:
 		""" performs a training process for one epoch """
 		self.model.train(True)
+		self._reset_loss_state()
 		total_loss = 0.0
 		tqdm_loader = tqdm(self.train_loader)
 		for inputs, targets in tqdm_loader:
@@ -171,10 +178,7 @@ class Trainer:
 	def _evaluate(self, epoch: int) -> float:
 		""" evaluates the model on the validation set """
 		self.model.train(False)
-		# handling state-ful loss functions here
-		for foo in [self.regularization_fn, self.loss_fn]:
-			if hasattr(foo, 'reset_state'):
-				foo.reset_state()
+		self._reset_loss_state()
 
 		total_loss = 0.0
 		with torch.no_grad():
