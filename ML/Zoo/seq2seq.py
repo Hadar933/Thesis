@@ -51,7 +51,7 @@ class Encoder(nn.Module):
 
 		embedded = self.embedding(enc_input)
 		outputs, last_hidden = self.rnn(embedded)
-		# output -> [batch_size, seq_size, hid_size * n_dirs], i.e all hidden (fwd and bwd) from the LAST layer
+		# output -> [batch_size, seq_size, hid_size * n_dirs], ie all hidden (fwd and bwd) from the LAST layer
 		# last_hidden -> [num_layers * num_directions, batch_size, hidden_size]
 		hidden_cat = rearrange(last_hidden, 'layers_X_dirs batch hid_size -> batch (layers_X_dirs hid_size)')
 		# after FC: [batch_size, dec_hid_size]. Casting to dec_hid_size as this hid state = initial hid decoder state
