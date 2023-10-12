@@ -9,10 +9,16 @@ class PairwiseVariationLossL1(nn.Module):
 
 	def forward(self, current_prediction):
 		if self.last_prediction is None:
-			self.last_prediction = current_prediction.detach()
-			return torch.tensor(0)  # Return 0 as the loss for the first iteration, where no last_prediction exists
+			self.last_prediction = current_prediction
+			return 0
+
+		# Check for size mismatch and adjust if necessary
+		if self.last_prediction.size(0) != current_prediction.size(0):
+			self.last_prediction = self.last_prediction[:current_prediction.size(0)]
+
 		variation = torch.mean(torch.abs(current_prediction - self.last_prediction))
-		self.last_prediction = current_prediction.detach()
+
+		self.last_prediction = current_prediction
 
 		return variation
 
@@ -24,10 +30,16 @@ class PairwiseVariationLossMSE(nn.Module):
 
 	def forward(self, current_prediction):
 		if self.last_prediction is None:
-			self.last_prediction = current_prediction.detach()
-			return torch.tensor(0)  # Return 0 as the loss for the first iteration, where no last_prediction exists
-		variation = torch.mean((current_prediction - self.last_prediction)**2)
-		self.last_prediction = current_prediction.detach()
+			self.last_prediction = current_prediction
+			return 0
+
+		# Check for size mismatch and adjust if necessary
+		if self.last_prediction.size(0) != current_prediction.size(0):
+			self.last_prediction = self.last_prediction[:current_prediction.size(0)]
+
+		variation = torch.mean((current_prediction - self.last_prediction) ** 2)
+
+		self.last_prediction = current_prediction
 
 		return variation
 
