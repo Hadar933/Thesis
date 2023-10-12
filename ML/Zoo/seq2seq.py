@@ -2,6 +2,7 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from einops import rearrange
 
 
 class Encoder(nn.Module):
@@ -50,10 +51,10 @@ class Encoder(nn.Module):
 
 		embedded = self.embedding(enc_input)
 		outputs, last_hidden = self.rnn(embedded)
-		fwd_last_hidden, bwd_last_hidden = last_hidden[-2, :, :], last_hidden[-1, :, :]
-		hidden_cat = torch.cat((fwd_last_hidden, bwd_last_hidden), dim=1)
-		# now our hidden has shape [batch_size, hidden_size * num_directions] and after FC: [batch_size, dec_hid_size]
-		# we cast to dec_hidden_size as this hidden state is the initial hidden state of the decoder!
+		# output -> [batch_size, seq_size, hid_size * n_dirs], i.e all hidden (fwd and bwd) from the LAST layer
+		# last_hidden -> [num_layers * num_directions, batch_size, hidden_size]
+		hidden_cat = rearrange(last_hidden, 'layers_X_dirs batch hid_size -> batch (layers_X_dirs hid_size)')
+		# after FC: [batch_size, dec_hid_size]. Casting to dec_hid_size as this hid state = initial hid decoder state
 		return outputs, torch.tanh(self.fc(hidden_cat))
 
 
