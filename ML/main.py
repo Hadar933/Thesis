@@ -96,7 +96,8 @@ if __name__ == '__main__':
                     flip_history=flip_history,
                     regularization_factor=regularization_factor
                 )
+                preds = trainer.predict('val')
                 trainer.fit()
 
-    preds = trainer.predict()
+    preds = trainer.predict('val')
     utils.plot_df_with_plotly(preds)

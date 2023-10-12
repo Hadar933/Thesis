@@ -114,20 +114,22 @@ def train_val_test_split(
 		val_percent: float,
 		feature_window_size: int,
 		target_window_size: int,
-		intersect_size: int,
+		intersect: int,
 		batch_size: int,
 		features_normalizer,  # types not specified due to circular imports of Normalizer
 		targets_normalizer
 ) -> dict:
 	"""
-	creates a time series train-val-test dataset-split (not history) for multiple multivariate time series
+	creates a time series train-val-test dataset-split (not history) for multiple multivariate time series.
+	since a prediction should be on a single dataset, we create a dataset (and a dataloader) for each of
+	the datasets. In inference time, we can simply choose the dataloader using its index.
 	:param features: the data itself
 	:param targets: the target(s)
 	:param train_percent: percentage of data to be considered as training data
 	:param val_percent: same, just for validation
 	:param feature_window_size: the number of samples in every window (history size)
 	:param target_window_size: the number of samples in the predicted value (usually one)
-	:param intersect_size: an intersection between the feature and target lags
+	:param intersect: the intersection size between the feature and target windows
 	:param batch_size: the batch size for the training/validation sets.
 	:param features_normalizer: a normalizer object for the features of the training data
 	:param targets_normalizer: a normalizer object for the targets of the training data
@@ -137,45 +139,70 @@ def train_val_test_split(
 	train_size = int(train_percent * n_exp)
 	val_size = int(val_percent * n_exp)
 
+	# train loaders and per-dataset class:
 	features_train, targets_train = features[:train_size], targets[:train_size]
 	features_train = features_normalizer.fit_transform(features_train)  # statistics are set from training data
 	targets_train = targets_normalizer.fit_transform(targets_train)  # same
+	train_dataset = MultiTimeSeries(features_train, targets_train, feature_window_size, target_window_size, intersect)
+	train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+	all_train_datasets = [
+		MultiTimeSeries(features_train[i].unsqueeze(0), targets_train[i].unsqueeze(0), feature_window_size,
+						target_window_size, intersect) for i in range(features_train.shape[0])
+	]
+	all_train_dataloaders = [
+		torch.utils.data.DataLoader(all_train_datasets[i], batch_size=1, shuffle=False) for i in
+		range(len(all_train_datasets))
+	]
 
+	# validation loaders and per-dataset class:
 	features_val, targets_val = features[train_size:train_size + val_size], targets[train_size:train_size + val_size]
 	features_val = features_normalizer.transform(features_val)
 	targets_val = targets_normalizer.transform(targets_val)
+	val_dataset = MultiTimeSeries(features_val, targets_val, feature_window_size, target_window_size, intersect)
+	val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+	all_val_datasets = [
+		MultiTimeSeries(features_val[i].unsqueeze(0), targets_val[i].unsqueeze(0), feature_window_size,
+						target_window_size, intersect) for i in range(features_val.shape[0])
+	]
+	all_val_dataloaders = [
+		torch.utils.data.DataLoader(all_val_datasets[i], batch_size=1, shuffle=False) for i in
+		range(len(all_val_datasets))
+	]
 
+	# test loaders and per-dataset class:
 	features_test, targets_test = features[train_size + val_size:], targets[train_size + val_size:]
 	features_test = features_normalizer.transform(features_test)
 	targets_test = targets_normalizer.transform(targets_test)
-
-	train_dataset = MultiTimeSeries(features_train, targets_train, feature_window_size, target_window_size,
-									intersect_size)
-	val_dataset = MultiTimeSeries(features_val, targets_val, feature_window_size, target_window_size, intersect_size)
-	train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-	val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-
-	# since a prediction should be on a single dataset, we create a dataset (and a dataloader) for each of
-	# the test datasets in the test tensor. In inference time, we can simply choose the test dataloader
-	# using its index:
+	test_dataset = MultiTimeSeries(features_test, targets_test, feature_window_size, target_window_size, intersect)
+	test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 	all_test_datasets = [
-		MultiTimeSeries(features_test[i].unsqueeze(0), targets_test[i].unsqueeze(0), feature_window_size,
-						target_window_size, intersect_size) for i in range(features_test.shape[0])]
-	all_test_dataloaders = [torch.utils.data.DataLoader(all_test_datasets[i], batch_size=1, shuffle=False)
-							for i in range(len(all_test_datasets))]
+		MultiTimeSeries(features_test[i].unsqueeze(0), targets_test[i].unsqueeze(0),
+						feature_window_size, target_window_size, intersect) for i in range(features_test.shape[0])
+	]
+	all_test_dataloaders = [
+		torch.utils.data.DataLoader(all_test_datasets[i], batch_size=1, shuffle=False)
+		for i in range(len(all_test_datasets))
+	]
 	return {
 		'train': {
 			'data': train_dataset,
-			'loader': train_loader
+			'loader': train_loader,
+			'all_datasets': all_train_datasets,
+			'all_dataloaders': all_train_dataloaders
 		},
 		'val': {
 			'data': val_dataset,
-			'loader': val_loader
+			'loader': val_loader,
+			'all_datasets': all_val_datasets,
+			'all_dataloaders': all_val_dataloaders
 		},
 		'test': {
-			'data': all_test_datasets,
-			'loader': all_test_dataloaders
+			'data': test_dataset,
+			'loader': test_loader,
+			'all_datasets': all_test_datasets,
+			'all_dataloaders': all_test_dataloaders
 		}
+
 	}
 
 

@@ -2,6 +2,7 @@ import importlib.util
 import inspect
 import json
 from datetime import datetime
+from typing import Literal
 
 from ML.Core.custom_loss import LossFactory
 from ML.Utilities import utils
@@ -80,7 +81,10 @@ class Trainer:
 		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer_name)(self.model.parameters())
 
 		self._create_model_dir()
-		self.train_loader, self.val_loader, self.all_test_loaders = self._set_loaders()
+
+		self.data_dict = self._get_data()
+		self.train_loader = self.data_dict['train']['loader']
+		self.val_loader = self.data_dict['val']['loader']
 
 	def _construct_criterion(self):
 		""" populates the loss and regularization functions based on the provided criterion name """
@@ -124,7 +128,7 @@ class Trainer:
 			os.makedirs(self.model_dir)
 		utils.update_json(self.info_path, self.init_args)
 
-	def _set_loaders(self):
+	def _get_data(self):
 		""" sets the train/val/test loaders and updates the training statistics in the yaml (for normalization)  """
 		data_dict = utils.train_val_test_split(
 			features=self.features,
@@ -133,12 +137,12 @@ class Trainer:
 			val_percent=self.val_percent,
 			feature_window_size=self.feature_win,
 			target_window_size=self.target_win,
-			intersect_size=self.intersect,
+			intersect=self.intersect,
 			batch_size=self.batch_size,
 			features_normalizer=self.features_normalizer,
 			targets_normalizer=self.targets_normalizer
 		)
-		return data_dict['train']['loader'], data_dict['val']['loader'], data_dict['test']['loader']
+		return data_dict
 
 	def _calc_criterion(self, predictions: torch.Tensor, targets: torch.Tensor):
 		"""
@@ -229,15 +233,20 @@ class Trainer:
 		}
 		utils.update_json(self.info_path, fit_info)
 
-	def predict(self) -> pd.DataFrame:
-		""" creates a prediction for every test loader in our test loaders list """
+	def predict(self, dataset: str) -> pd.DataFrame:
+		"""
+		creates a prediction for every loader in our loaders list based on the desired dataset
+		:param dataset: either train val or test
+		:return: a dataframe of predicted values for every dataset i
+		"""
+		all_loaders = self.data_dict[dataset]['all_dataloaders']
 		self.model.load_state_dict(torch.load(self.best_model_path, map_location=self.device))
 		self.model.train(False)
 		all_preds = pd.DataFrame()
 		with torch.no_grad():
-			for j, test_loader in enumerate(self.all_test_loaders):
+			for j, data_loader in enumerate(all_loaders):
 				curr_preds, curr_trues = [], []
-				for inputs_i, true_i in tqdm(test_loader, desc=f"Predicting on test loader {j}"):
+				for inputs_i, true_i in tqdm(data_loader, desc=f"Predicting on {dataset} loader #{j}"):
 					inputs_i = inputs_i.to(self.device)
 					pred_i = self.model(inputs_i).to('cpu')
 					pred_i = self.targets_normalizer.inverse_transform(pred_i)
