@@ -171,6 +171,11 @@ class Trainer:
 	def _evaluate(self, epoch: int) -> float:
 		""" evaluates the model on the validation set """
 		self.model.train(False)
+		# handling state-ful loss functions here
+		for foo in [self.regularization_fn, self.loss_fn]:
+			if hasattr(foo, 'reset_state'):
+				foo.reset_state()
+
 		total_loss = 0.0
 		with torch.no_grad():
 			tqdm_loader = tqdm(self.val_loader)

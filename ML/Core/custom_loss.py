@@ -1,10 +1,23 @@
 import torch
 import torch.nn as nn
+from abc import ABC
 
 
-class PairwiseVariationLossL1(nn.Module):
+class StateFulLoss(nn.Module):
+	def __init__(self):
+		super(StateFulLoss, self).__init__()
+
+	def reset_state(self):
+		""" resets all states in the class. Can be used (for example) when moving from train to validation tests """
+		raise NotImplementedError
+
+
+class PairwiseVariationLossL1(StateFulLoss):
 	def __init__(self):
 		super(PairwiseVariationLossL1, self).__init__()
+		self.last_prediction = None
+
+	def reset_state(self):
 		self.last_prediction = None
 
 	def forward(self, current_prediction):
@@ -21,9 +34,12 @@ class PairwiseVariationLossL1(nn.Module):
 		return variation
 
 
-class PairwiseVariationLossMSE(nn.Module):
+class PairwiseVariationLossMSE(StateFulLoss):
 	def __init__(self):
 		super(PairwiseVariationLossMSE, self).__init__()
+		self.last_prediction = None
+
+	def reset_state(self):
 		self.last_prediction = None
 
 	def forward(self, current_prediction):
