@@ -35,7 +35,7 @@ class Encoder(nn.Module):
 		self.embedding = nn.Linear(self.input_size, self.embedding_size)
 		self.rnn = nn.GRU(self.embedding_size, self.hidden_size, self.num_layers, bidirectional=self.bidirectional,
 						  batch_first=True)
-		self.fc = nn.Linear(self.hidden_size * self.num_directions, self.dec_hidden_size)
+		self.fc = nn.Linear(self.hidden_size * self.num_directions * self.num_layers, self.dec_hidden_size)
 
 	def forward(
 			self,
