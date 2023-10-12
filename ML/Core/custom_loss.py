@@ -29,4 +29,4 @@ class LossFactory:
 			case 'total_variation_mse' | 'total_variation_l2' | 'tv_l2' | 'tv_mse':
 				return TotalVariationLossMSE()
 			case _:  # tries loading default name from torch
-				getattr(torch.nn, loss_name)()
+				return getattr(torch.nn, loss_name)()
