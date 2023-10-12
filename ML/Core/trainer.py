@@ -150,10 +150,10 @@ class Trainer:
 		return loss_term + self.regularization_factor * regularization_term
 
 	def _reset_loss_state(self):
-		
-		for foo in [self.regularization_fn, self.loss_fn]:
-			if hasattr(foo, 'reset_state'):
-				foo.reset_state()
+		if hasattr(self.regularization_fn, 'reset_state'):
+			self.regularization_fn.reset_state()
+		if hasattr(self.loss_fn, 'reset_state'):
+			self.loss_fn.reset_state()
 
 	def _train_one_epoch(self, epoch: int) -> float:
 		""" performs a training process for one epoch """
