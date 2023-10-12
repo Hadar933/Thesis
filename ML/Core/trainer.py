@@ -2,6 +2,8 @@ import importlib.util
 import inspect
 import json
 from datetime import datetime
+
+from ML.Core.custom_loss import Loss
 from ML.Utilities import utils
 import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
@@ -44,9 +46,10 @@ class Trainer:
 			targets_norm_method: str,
 			features_global_normalizer: bool,
 			targets_global_normalizer: bool,
-			flip_history: bool
+			flip_history: bool,
+			regularization_factor: float
 	):
-		self._set_seed(seed)  # TODO: check if this does anything
+		self._set_seed(seed)
 
 		self.init_args = {key: val for key, val in locals().copy().items() if key != 'self'}
 		# TODO: bug with undesired saving of early_stopping
@@ -71,32 +74,32 @@ class Trainer:
 			self.targets = torch.fliplr(self.targets)
 		self.device: torch.cuda.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 		self.model: torch.nn.Module = self._construct_model()
-		self.criterion: torch.nn.modules.loss = getattr(torch.nn, self.criterion_name)()
+		self.loss_fn: torch.nn.modules.loss
+		self.regularization_fn: None | callable
+		self._set_criterion()  # setting the loss and regularization functions
 		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer_name)(self.model.parameters())
 
 		self._create_model_dir()
 		self.train_loader, self.val_loader, self.all_test_loaders = self._set_loaders()
 
-	def _set_seed(self, seed) -> None:
+	def _set_criterion(self):
+		""" populates the loss and regularization functions based on the provided criterion name """
+		if '+' in self.criterion_name:
+			loss_name, regularization_name = self.criterion_name.replace(' ', '').split('+')
+			self.loss_fn = Loss.get_loss_function(loss_name)
+			self.regularization_fn = Loss.get_loss_function(regularization_name)
+		else:
+			self.loss_fn = Loss.get_loss_function(self.criterion_name)
+			self.regularization_fn = lambda x: 0  # just a function that does nothing
+
+	@staticmethod
+	def _set_seed(seed) -> None:
 		torch.manual_seed(seed)
 		np.random.seed(seed)
 		random.seed(seed)
 
-	def _save_init_args(self, init_locals):
-		local_vars = dict()
-		for key, val in init_locals.items():
-			if (
-					key == 'self' or
-					key.startswith('__') or
-					inspect.ismodule(val) or
-					inspect.isclass(val) or
-					inspect.isfunction(val)
-			):
-				continue
-			local_vars[key] = val
-		return local_vars
-
 	def _construct_model(self):
+		""" uses the provided model name and model args and returns a suitable model object """
 		file_path = os.path.join('Zoo', f'{self.model_class_name.lower()}.py')
 		if not os.path.exists(file_path):
 			raise FileNotFoundError(f"The model file '{file_path}' does not exist")
