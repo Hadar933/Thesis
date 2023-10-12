@@ -15,8 +15,8 @@ if __name__ == '__main__':
     batch_size = 512
     n_epochs = 20
     seed = 3407
-    criterion = 'L1Loss'
-    regularization_factor = 0.0
+    criterion = 'L1Loss + pv_l1'
+    regularization_factor = 10
     optimizer = 'Adam'
     patience = 10
     patience_tolerance = 0.005
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     for emb_size in [1]:
         for hid_size in [1]:
             for nlayers in [1]:
-                exp_name = f"prssm_test"
+                exp_name = f"pv_l1_test"
                 seq2seq_args = dict(
                     input_dim=input_dim,
                     target_lag=target_win,
