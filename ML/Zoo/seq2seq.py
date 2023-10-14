@@ -34,8 +34,8 @@ class Encoder(nn.Module):
 		self.num_layers = num_layers
 		self.bidirectional = bidirectional
 		self.num_directions = 2 if self.bidirectional else 1
-		# self.embedding = nn.Linear(self.input_size, self.embedding_size)
-		self.embedding = GRN(self.input_size, self.hidden_size, self.embedding_size)
+		self.embedding = nn.Linear(self.input_size, self.embedding_size)
+		# self.embedding = GRN(self.input_size, self.hidden_size, self.embedding_size)
 		self.rnn = nn.GRU(self.embedding_size, self.hidden_size, self.num_layers, bidirectional=self.bidirectional,
 						  batch_first=True)
 		self.fc = nn.Linear(self.hidden_size * self.num_directions * self.num_layers, self.dec_hidden_size)
