@@ -277,5 +277,6 @@ class Trainer:
 			trainer_args = json.load(f)
 
 		trainer = cls(**trainer_args)
+		trainer.best_model_path = model_pt_path
 		trainer.model.load_state_dict(torch.load(model_pt_path, map_location=trainer.device))
 		return trainer
