@@ -7,6 +7,7 @@ import dash
 from dash import dcc, html, Input, Output
 import plotly.graph_objs as go
 import torch
+import pandas as pd
 
 matplotlib.use('TkAgg')
 
@@ -45,33 +46,28 @@ def results_plotter(kinematics_path, forces_path):
 	app.run_server(debug=True)
 
 
-def filter_results(exp_date: str, f=None, a=None, k=None):
-	""" displays all kinematics datasets from the hard drive that adhere the provided arguments """
-	parent_dir = rf'E:\Hadar\experiments\{exp_date}\results'
-	# Create the search patterns based on provided values
-	f_pattern = f"F={f}" if f is not None else ""
-	a_pattern = f"A=M_PIdiv{a}" if a is not None else ""
-	k_pattern = f"K={k}" if k is not None else ""
-	relevant_result_dirs = []
-	for subdir in os.listdir(parent_dir):
-		subdir = os.path.join(parent_dir, subdir)
-		if f_pattern in subdir and a_pattern in subdir and k_pattern in subdir:
-			relevant_result_dirs.append(subdir)
-	return relevant_result_dirs
-
-
-def plot_filtered_results(paths, what_to_plot):
-
-	for item in paths:
-		if 'angles' in what_to_plot:
-			data = np.load(os.path.join(item, f"angles.npy"))
-			title_addition = re.search(r'\[(.*)\]', item).group(1)
-			camera_utils.plot_angles(data, n_samples=10_000, add_to_title=title_addition)
-		if 'trajectories' in what_to_plot:
-			data = np.load(os.path.join(item, f"trajectories.npy"))
-			title_addition = re.search(r'\[(.*)\]', item).group(1)
-			camera_utils.plot_trajectories(data, wing_plane_jmp=200, add_to_title=title_addition)
-
-
 if __name__ == '__main__':
-	results_plotter(r'10_10_2023/kinematics.pt', r'10_10_2023/forces.pt')
+	date = '17_10_2023'
+	kpath = rf'{date}/kinematics.pt'
+	fpath = rf'{date}/forces.pt'
+	k = pd.DataFrame(torch.load(kpath)[0], columns=['theta', 'phi', 'psi'])
+	f = pd.DataFrame(torch.load(fpath)[0], columns=['f1', 'f2', 'f3', 'f4'])
+	f1, f2, f3, f4 = f['f1'], f['f2'], f['f3'], f['f4']
+	f['sum'] = f1 + f2 + f3 + f4
+	f['tau_x=f1+f2-f3-f4'] = (f1 + f2) - (f3 + f4)
+	f['tau_y=f2+f3-f1-f4'] = (f2 + f3) - (f1 + f4)
+	df = pd.concat([f, k], axis=1)
+	# df.plot()
+	# plt.show()
+
+	import plotly.graph_objects as go
+
+	fig = go.Figure()
+	for col in df.columns:
+		fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col))
+	fig.show()
+	# Optionally, save the figure to an HTML file
+	fig.write_html('plot.html')
+
+	z = 2
+# results_plotter(r'17_10_2023/kinematics.pt', r'17_10_2023/forces.pt')
