@@ -12,39 +12,52 @@ from DataHandler import encoders, preprocess
 
 if __name__ == '__main__':
 
-	exp_date = '22_09_2023'
-	assert all(os.path.exists(f"Camera\\calibrations\\{exp_date}\\cameraMatrix{i}.mat") for i in [1, 2]), \
-		'run calib.m first!'
+	exp_date = '19_10_2023'
+	assert (
+			os.path.exists(rf"Camera\calibrations\{exp_date}\cameraMatrix1.mat") and
+			os.path.exists(rf"Camera\calibrations\{exp_date}\cameraMatrix2.mat")
+	), 'run calib.m first!'
+	assert (
+			os.path.exists(fr"E:\Hadar\experiments\{exp_date}\preset_20302.adj") and
+			os.path.exists(fr"E:\Hadar\experiments\{exp_date}\preset_20302.adj")
+	), 'preset camera configuration files missing'
 
-	human_verification = True
 	use_hard_drive = True
-	camera_n_samples = 10_000
-	force_n_samples = 5_000
-	camera_start_threshold: float = 0.15
-	forces_start_threshold: float = 0.001
-	angles_lst: list[torch.Tensor] = []
-	forces_lst: list[torch.Tensor] = []
-	tare = []  # we can use tare to specify force column names we want to shift to zero ( df[tare] - df[tare].iloc[0] )
-
-	tracking_params = {'NumBlobs': 3, 'minArea': 100, 'winSize': (15, 15), 'maxLevel': 2,
-					   'criteria': (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
-
-	crop_params_filename = 'crop_params.pkl'
-	parent_dirname = "E:\\Hadar" if use_hard_drive else ''
-	first_image_name = '000000.jpg'
+	human_verification_runtime = True
+	human_verification_tensors = False
 	add_manual_crop = False
 	show_wing_tracker = False
 	show_angle_results = False
 	show_force_results = False
 	show_start_heuristics = True
-	num_rows_in_force_data_header = 21
-	start_from = 2000
-	merging_smooth_method = 'median'
-	merging_smooth_kernel_size = 10
+
+	camera_n_samples = 10_000
+	force_n_samples = 5_000
+
+	angles_lst: list[torch.Tensor] = []
+	forces_lst: list[torch.Tensor] = []
+	tare = []  # we can use tare to specify force column names we want to shift to zero ( df[tare] - df[tare].iloc[0] )
+
+	crop_params_filename = 'crop_params.pkl'
+	parent_dirname = "E:\\Hadar" if use_hard_drive else ''
+	first_image_name = '000000.jpg'
+
+	force_data_n_header_rows = 21
+
+	crop_this_many_samples_from_prefix = 2000
+	camera_start_threshold: float = 0.15
+	forces_start_threshold: float = 0.001
+	smooth_method_for_trigger = 'median'
+	smooth_kernel_size_for_trigger = 10
+
 	bad_dirs = []
 
-	preprocessor = preprocess.Preprocess(['interpolate', 'resample', 'drop'])
-	encoder = encoders.Encoder(['torque'])
+	tracking_params = {
+		'NumBlobs': 3, 'minArea': 100, 'winSize': (15, 15), 'maxLevel': 2,
+		'criteria': (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)
+	}
+	preprocessor = preprocess.Preprocess(['interpolate', 'resample'])
+	# encoder = encoders.Encoder(['torque'])
 
 	# the subdirectories of experiment names have the same names for cam2, cam3 we use cam2 w.l.o.g
 	photos_subdirs_name = sorted(os.listdir(f'{parent_dirname}\\experiments\\{exp_date}\\cam2'))
@@ -66,13 +79,13 @@ if __name__ == '__main__':
 			parent_dirname=parent_dirname,
 			photos_sub_dirname=curr_subdir_name,
 			show_force_results=show_force_results,
-			header_row_count=num_rows_in_force_data_header,
+			header_row_count=force_data_n_header_rows,
 			tare=tare
 		)
 
-		trajectory_3d = trajectory_3d[:, start_from:, :]
-		angles_df = angles_df[start_from:].reset_index(drop=True)
-		forces_df = forces_df[start_from:].reset_index(drop=True)
+		trajectory_3d = trajectory_3d[:, crop_this_many_samples_from_prefix:, :]
+		angles_df = angles_df[crop_this_many_samples_from_prefix:].reset_index(drop=True)
+		forces_df = forces_df[crop_this_many_samples_from_prefix:].reset_index(drop=True)
 
 		df = DataHandler.trigger.merge_data(
 			trajectory_3d=trajectory_3d,
@@ -82,16 +95,16 @@ if __name__ == '__main__':
 			force_freq=f"{1 / force_n_samples}S",
 			camera_threshold=camera_start_threshold,
 			force_threshold=forces_start_threshold,
-			smooth_method=merging_smooth_method,
-			smooth_kernel_size=merging_smooth_kernel_size,
+			smooth_method=smooth_method_for_trigger,
+			smooth_kernel_size=smooth_kernel_size_for_trigger,
 			show_start_indicators=show_start_heuristics
 		)
-		if human_verification:
+		if human_verification_runtime:
 			if input('Is this one bad? [y/Any]') == 'y':
 				continue
 
 		df = preprocessor.run(df)
-		df = encoder.run(df)
+		# df = encoder.run(df)
 
 		angles_lst.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
 		forces_lst.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
@@ -110,5 +123,6 @@ if __name__ == '__main__':
 	forces = torch.stack(trimmed_forces)
 	print('k shape:', kinematics.shape)
 	print('f shape: ', forces.shape)
+
 	torch.save(forces, f"{parent_dirname}\\experiments\\{exp_date}\\forces.pt")
 	torch.save(kinematics, f"{parent_dirname}\\experiments\\{exp_date}\\kinematics.pt")
