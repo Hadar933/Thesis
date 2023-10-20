@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 
-class FeatureEmbed(nn.Module):
+class PerFeatureEmbedding(nn.Module):
 
 	def __init__(
 			self,
@@ -14,7 +14,7 @@ class FeatureEmbed(nn.Module):
 		:param n_features: number of features in the input
 		:param embedding_size: the output size we embed to
 		"""
-		super(FeatureEmbed, self).__init__()
+		super(PerFeatureEmbedding, self).__init__()
 		self.n_features = n_features
 		self.embedding_size = embedding_size
 		self.per_feature_layers = nn.ModuleList([nn.Linear(1, embedding_size) for _ in range(n_features)])
@@ -28,6 +28,6 @@ class FeatureEmbed(nn.Module):
 
 if __name__ == '__main__':
 	x = torch.randn((3, 4, 5))
-	fe = FeatureEmbed(x.shape[-1], 10)
+	fe = PerFeatureEmbedding(x.shape[-1], 10)
 	y = fe(x)
 
