@@ -83,7 +83,7 @@ class Encoder:
 			df: pd.DataFrame,
 			**kwargs
 	) -> pd.DataFrame:
-		radius = kwargs.get('encode_torque_radius', 0.06)  # as measured using to_3d.evaluate_3d_distances
+		radius = kwargs.get('encode_torque_radius', 0.06)
 		logger.info(f'Encoding torque with radius = {radius}')
 		f1, f2, f3, f4 = df['F1'], df['F2'], df['F3'], df['F4']
 		df['torque_x'] = (radius / 2) * ((f1 + f2) - (f3 + f4))

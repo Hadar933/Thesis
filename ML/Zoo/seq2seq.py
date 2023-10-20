@@ -80,8 +80,8 @@ class Attention(nn.Module):
 	) -> torch.Tensor:
 		"""
 		@param dec_hidden:  [batch_size, dec_hidden_size]
-		@param enc_outputs: [batch_size, seq_size, hidden_size * 2]
-		@return:
+		@param enc_outputs: [batch_size, seq_size, hidden_size * n_dirs]
+		@return: a tensor of attention weights [batch_size, seq_size]
 		"""
 		batch_size, seq_size = enc_outputs.shape[0], enc_outputs.shape[1]
 		dec_hidden = dec_hidden.unsqueeze(1).repeat(1, seq_size, 1)
@@ -122,20 +122,20 @@ class Decoder(nn.Module):
 			enc_outputs: torch.Tensor
 	) -> tuple[torch.Tensor, torch.Tensor]:
 		"""
-		@param dec_input: [batch size, 1, enc_output_size]
+		@param dec_input: [batch size, enc_output_size]
 		@param dec_hidden:  [batch size, dec_hidden_size]
 		@param enc_outputs: [batch_size, seq_size , enc_hidden_dim * num_directions]
 		@return:
 		"""
 		embedded = self.embedding(dec_input).unsqueeze(1)
 		attn_weights = self.attention(dec_hidden, enc_outputs).unsqueeze(1)  # [batch size,1, seq_size]
-		weighted_enc_outputs = torch.bmm(attn_weights, enc_outputs)  # [batch size, 1, enc hidden dim * num directions]
-		rnn_input = torch.cat((embedded, weighted_enc_outputs), dim=2)  # [batch size, 1,enc hid dim * dirs + emb size]
+		weighted_sum_of_enc_outputs = torch.bmm(attn_weights, enc_outputs)  # [batch size, 1, enc hidden dim * num directions]
+		rnn_input = torch.cat((embedded, weighted_sum_of_enc_outputs), dim=2)  # [batch size, 1,enc hid dim * dirs + emb size]
 		dec_output, dec_hidden = self.rnn(rnn_input, dec_hidden.unsqueeze(1).permute(1, 0, 2))
-		# output = [batch size, seq len, dec hidden size * n directions] = [batch_size, 1, dec hidden size]
+		# output = [batch size, 1, dec hidden size * n directions] = [batch_size, 1, dec hidden size]
 		# hidden = [n layers * n directions, batch size, dec hid dim] = [1, batch_size, dec hidden size]
 		# this also means that output == hidden (up to permute)
-		prediction = self.fc_out(torch.cat((dec_output, weighted_enc_outputs, embedded), dim=2)).squeeze(
+		prediction = self.fc_out(torch.cat((dec_output, weighted_sum_of_enc_outputs, embedded), dim=2)).squeeze(
 			1)  # [batch size, output dim]
 		return prediction, dec_hidden.squeeze(0)
 
@@ -223,15 +223,30 @@ class Seq2Seq(nn.Module):
 		@return:
 		"""
 		outputs = []
-		# encoder_outputs is all hidden states of the input sequence, back and forwards
-		# hidden is the final forward and backward hidden states,ל passed through a linear layer
 		encoder_outputs, hidden = self.encoder(x)
 		input = self.cast_input_to_dec_output(x[:, -1, :])
 		for t in range(self.target_lag):
-			# insert input token embedding, previous hidden state and all encoder hidden states
-			# receive output tensor (predictions) and new hidden state
 			output, hidden = self.decoder(input, hidden, encoder_outputs)
-			# place predictions in a tensor holding predictions for each token
 			outputs.append(output)
 			input = output
 		return torch.stack(outputs).to(x.device).permute(1, 0, 2)
+
+
+if __name__ == '__main__':
+	target_lag = 1
+	enc_embedding_size = 10
+	enc_hidden_size = 16
+	enc_num_layers = 1
+	enc_bidirectional = True
+	dec_embedding_size = 10
+	dec_hidden_size = 12
+	dec_output_size = 2
+	batch_size = 2048
+	feature_lag = 480
+	input_size = 7
+	input_dim = batch_size, feature_lag, input_size
+	xx = torch.randn(batch_size, feature_lag, input_size)
+	s2s = Seq2Seq(input_dim, target_lag, enc_embedding_size, enc_hidden_size, enc_num_layers, enc_bidirectional,
+				  dec_embedding_size, dec_hidden_size, dec_output_size)
+	y = s2s(xx)
+	print(y.shape)
