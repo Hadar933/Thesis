@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 import torch
 from tqdm import tqdm
 
-from ML.Core.datasets import MultiTimeSeries
+from ML.Core.datasets import FixedLenMultiTimeSeries
 from ML.Zoo.seq2seq import Seq2Seq
 
 TIME_FORMAT = '%Y-%m-%d_%H-%M-%S'
@@ -143,11 +143,11 @@ def train_val_test_split(
 	features_train, targets_train = features[:train_size], targets[:train_size]
 	features_train = features_normalizer.fit_transform(features_train)  # statistics are set from training data
 	targets_train = targets_normalizer.fit_transform(targets_train)  # same
-	train_dataset = MultiTimeSeries(features_train, targets_train, feature_window_size, target_window_size, intersect)
+	train_dataset = FixedLenMultiTimeSeries(features_train, targets_train, feature_window_size, target_window_size, intersect)
 	train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 	all_train_datasets = [
-		MultiTimeSeries(features_train[i].unsqueeze(0), targets_train[i].unsqueeze(0), feature_window_size,
-						target_window_size, intersect) for i in range(features_train.shape[0])
+		FixedLenMultiTimeSeries(features_train[i].unsqueeze(0), targets_train[i].unsqueeze(0), feature_window_size,
+								target_window_size, intersect) for i in range(features_train.shape[0])
 	]
 	all_train_dataloaders = [
 		torch.utils.data.DataLoader(all_train_datasets[i], batch_size=1, shuffle=False) for i in
@@ -158,11 +158,11 @@ def train_val_test_split(
 	features_val, targets_val = features[train_size:train_size + val_size], targets[train_size:train_size + val_size]
 	features_val = features_normalizer.transform(features_val)
 	targets_val = targets_normalizer.transform(targets_val)
-	val_dataset = MultiTimeSeries(features_val, targets_val, feature_window_size, target_window_size, intersect)
+	val_dataset = FixedLenMultiTimeSeries(features_val, targets_val, feature_window_size, target_window_size, intersect)
 	val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 	all_val_datasets = [
-		MultiTimeSeries(features_val[i].unsqueeze(0), targets_val[i].unsqueeze(0), feature_window_size,
-						target_window_size, intersect) for i in range(features_val.shape[0])
+		FixedLenMultiTimeSeries(features_val[i].unsqueeze(0), targets_val[i].unsqueeze(0), feature_window_size,
+								target_window_size, intersect) for i in range(features_val.shape[0])
 	]
 	all_val_dataloaders = [
 		torch.utils.data.DataLoader(all_val_datasets[i], batch_size=1, shuffle=False) for i in
@@ -173,11 +173,11 @@ def train_val_test_split(
 	features_test, targets_test = features[train_size + val_size:], targets[train_size + val_size:]
 	features_test = features_normalizer.transform(features_test)
 	targets_test = targets_normalizer.transform(targets_test)
-	test_dataset = MultiTimeSeries(features_test, targets_test, feature_window_size, target_window_size, intersect)
+	test_dataset = FixedLenMultiTimeSeries(features_test, targets_test, feature_window_size, target_window_size, intersect)
 	test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 	all_test_datasets = [
-		MultiTimeSeries(features_test[i].unsqueeze(0), targets_test[i].unsqueeze(0),
-						feature_window_size, target_window_size, intersect) for i in range(features_test.shape[0])
+		FixedLenMultiTimeSeries(features_test[i].unsqueeze(0), targets_test[i].unsqueeze(0),
+								feature_window_size, target_window_size, intersect) for i in range(features_test.shape[0])
 	]
 	all_test_dataloaders = [
 		torch.utils.data.DataLoader(all_test_datasets[i], batch_size=1, shuffle=False)
