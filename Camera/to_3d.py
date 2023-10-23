@@ -70,40 +70,6 @@ def evaluate_3d_distances(
 		print(f"Error: {error}")
 
 
-def cartesian2spherical(
-		points_3d: np.ndarray,
-		new_origin: Optional[np.ndarray] = None
-) -> np.ndarray:
-	"""
-	computes spherical coordinates w.r.t to Origin (0,0,0) or new_origin if provided.
-	:param points_3d: cartesian points shaped as (n_trajects,m_points_per_trajects,3)
-	:param new_origin: if provided, assumes the origin is new_origin and not (0,0,0)
-	:return: points in spherical coordinate
-	"""
-	if new_origin is not None:
-		points_3d -= new_origin
-	x, y, z = points_3d[:, :, 0], points_3d[:, :, 1], points_3d[:, :, 2]
-	x2, y2, z2 = x * x, y * y, z * z
-	x2_plus_y2 = x2 + y2
-	r = np.sqrt(x2_plus_y2 + z2)
-	theta = np.arctan2(y, x)
-	phi = np.arctan2(np.sqrt(x2_plus_y2), z)
-	return np.stack([r, theta, phi], axis=-1)
-
-
-def read_3d_points_from_matlab(
-		points_3d_path: str
-) -> np.ndarray:
-	"""
-	@deprecated
-	reads points from matlab's triangulation
-	 """
-	points_3d = scipy.io.loadmat(points_3d_path)['triangulated_points']
-	points_3d = np.stack([points_3d[i][0] for i in range(points_3d.shape[0])])
-	points_3d = cartesian2spherical(points_3d)
-	return points_3d
-
-
 def xyz2euler(trajectories_3d: np.ndarray) -> np.ndarray:
 	# """
 	#   assumes that trajectories_3d contains 3 points that are ordered as such
@@ -147,7 +113,7 @@ def xyz2euler(trajectories_3d: np.ndarray) -> np.ndarray:
 	return np.array([theta, phi, psi])
 
 
-def normalize_vector(v):
+def normalize_vector(v: np.ndarray) -> np.ndarray:
 	"""
 	:param v: a matrix with shape (n,3) that represents the trajectory of a vector
 	:return: a row-wise l2 normalized vector
@@ -155,7 +121,10 @@ def normalize_vector(v):
 	return v / np.linalg.norm(v, axis=1)[:, np.newaxis]
 
 
-def angle_between_vectors(u: np.ndarray, v: np.ndarray) -> np.ndarray:
+def angle_between_vectors(
+		u: np.ndarray,
+		v: np.ndarray
+) -> np.ndarray:
 	""" returns the angle between u and v for two vectors.
 	 supports two cases for vector v - either a single vector (usually unit vector e_i) or a matrix (n,3)
 	"""
@@ -166,7 +135,10 @@ def angle_between_vectors(u: np.ndarray, v: np.ndarray) -> np.ndarray:
 	return norm
 
 
-def angle_between_vector_and_plane(vec, plane) -> np.ndarray:
+def angle_between_vector_and_plane(
+		vec: np.ndarray,
+		plane: tuple
+) -> np.ndarray:
 	"""
 	returns the angle between a vector and a plane based on the angle between a vector and the normal
 	:param vec: a np array of 1 or more points [x,y,z], shaped (N,3)
