@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
 
-matplotlib.use('TkAgg')
-fig = plt.figure()
 
 
 def from_01_to_ab(x: np.ndarray, a: float, b: float) -> np.ndarray:
@@ -49,6 +47,8 @@ def latin_hyper_cube_sampling(
 	lhc_data[:, 2] = from_01_to_ab(lhc_data[:, 2], fa, fb)
 
 	if show_plot and dim == 3:
+		matplotlib.use('TkAgg')
+		fig = plt.figure()
 		lhc_ax = fig.add_subplot(111, projection='3d')
 		lhc_ax.scatter(lhc_data[:, 0], lhc_data[:, 1], lhc_data[:, 2])
 		lhc_ax.set_title(f'Latin Hyper Cube Sampler ({len(lhc_data)} samples)')
@@ -66,4 +66,4 @@ if __name__ == '__main__':
 	fa, fb = 5.0, 20.0
 	ka, kb = 0.01, 1.0
 	Aa, Ab = 3.5, 6
-	samples = latin_hyper_cube_sampling(True, True)
+	samples = latin_hyper_cube_sampling(200, 3)
