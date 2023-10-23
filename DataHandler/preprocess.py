@@ -1,9 +1,14 @@
+from abc import ABC
+
 import numpy as np
 import pandas as pd
+import torch
 from loguru import logger
 
+DataType = pd.DataFrame | torch.Tensor
 
-class Preprocess:
+
+class Preprocess(ABC):
 	def __init__(self, preprocessing_tasks: list[str] | None):
 		self.preprocessing_tasks = preprocessing_tasks or []
 		self.task_map = {
@@ -18,16 +23,25 @@ class Preprocess:
 
 	def run(
 			self,
-			df: pd.DataFrame,
+			data: DataType,
 			**kwargs
-	) -> pd.DataFrame:
+	) -> DataType:
 		for task in self.preprocessing_tasks:
 			func = self.task_map.get(task)
 			if func:
-				df = func(df, **kwargs)
+				data = func(data, **kwargs)
 			else:
 				logger.warning(f"Could not find preprocess function {func}, moving on.")
-		return df
+		return data
+
+
+class DataFramePreprocess(Preprocess):
+	def __init__(self, preprocessing_tasks: list[str] | None):
+		"""
+		a preprocessor class for dataframe data types
+		:param preprocessing_tasks:
+		"""
+		super(DataFramePreprocess, self).__init__(preprocessing_tasks)
 
 	@staticmethod
 	def resample(

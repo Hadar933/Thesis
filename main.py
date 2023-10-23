@@ -12,7 +12,7 @@ from DataHandler import encoders, preprocess
 
 if __name__ == '__main__':
 
-	exp_date = '19_10_2023'
+	exp_date = '23_10_2023'
 	assert (
 			os.path.exists(rf"Camera\calibrations\{exp_date}\cameraMatrix1.mat") and
 			os.path.exists(rf"Camera\calibrations\{exp_date}\cameraMatrix2.mat")
@@ -50,13 +50,11 @@ if __name__ == '__main__':
 	smooth_method_for_trigger = 'median'
 	smooth_kernel_size_for_trigger = 10
 
-	bad_dirs = []
-
 	tracking_params = {
 		'NumBlobs': 3, 'minArea': 100, 'winSize': (15, 15), 'maxLevel': 2,
 		'criteria': (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)
 	}
-	preprocessor = preprocess.Preprocess(['interpolate', 'resample'])
+	preprocessor = preprocess.DataFramePreprocess(['interpolate', 'resample'])
 	# encoder = encoders.Encoder(['torque'])
 
 	# the subdirectories of experiment names have the same names for cam2, cam3 we use cam2 w.l.o.g
@@ -108,8 +106,10 @@ if __name__ == '__main__':
 
 		angles_lst.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
 		forces_lst.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
+	lengths = sorted([len(f) for f in angles_lst])
+	trim_len = lengths[2]
+	print(f"Lengths: {lengths}\n trim_len: {trim_len}")
 
-	trim_len = sorted([len(f) for f in angles_lst])[2]
 	trimmed_angles = []
 	trimmed_forces = []
 	for angles, forces in zip(angles_lst, forces_lst):
