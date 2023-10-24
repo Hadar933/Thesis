@@ -101,19 +101,20 @@ class Trainer:
 	def _handle_tensor_types_and_flip_history(self, flip_history: bool) -> None:
 		"""
 		for both the features and the targets, sets the tensors as float types and flips the history dimension,
-		if needed. handles both tensors or list of tensors features and targets. To flip, we use `torch.fliplr` - an
-		alternative to [:,::-1,:], which is not yet supported as is in torch
+		if needed. handles both tensors with shape (N,H,F) or list of tensors, each with shape (Hi,F) features and
+		targets. To flip the 3d tensor we use `torch.fliplr` - an alternative to [:,::-1,:]. to flip the list of 2D
+		tensor we use torch.flip on the first dim.
 		:param flip_history: boolean indicating whether to keep the history dim intact or flip it
 		"""
 		if isinstance(self.features, torch.Tensor):
 			self.features = torch.fliplr(self.features.float()) if flip_history else self.features.float()
 		elif isinstance(self.features, list):
-			self.features = [torch.fliplr(t.float()) if flip_history else t.float() for t in self.features]
+			self.features = [torch.flip(t.float(), [0]) if flip_history else t.float() for t in self.features]
 
 		if isinstance(self.targets, torch.Tensor):
 			self.targets = torch.fliplr(self.targets.float()) if flip_history else self.targets.float()
 		elif isinstance(self.targets, list):
-			self.targets = [torch.fliplr(t.float()) if flip_history else t.float() for t in self.targets]
+			self.targets = [torch.flip(t.float(), [0]) if flip_history else t.float() for t in self.targets]
 
 	def _construct_criterion(self):
 		""" populates the loss and regularization functions based on the provided criterion name """
@@ -121,7 +122,7 @@ class Trainer:
 			loss_name, regularization_name = self.criterion_name.replace(' ', '').split('+')
 			self.loss_fn = LossFactory.get_loss(loss_name)
 			self.regularization_fn = LossFactory.get_loss(regularization_name)
-		else:
+		else:  # no regularization
 			self.loss_fn = LossFactory.get_loss(self.criterion_name)
 			self.regularization_fn = lambda x: 0  # just a function that does nothing
 
@@ -143,9 +144,9 @@ class Trainer:
 		model_class = getattr(module, self.model_class_name)
 		model = model_class(**self.model_args)
 		if self.model_class_name.lower() == 'mlp':
-			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win * self.features.shape[-1]))
+			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win * self.features[0].shape[-1]))
 		else:
-			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win, self.features.shape[-1]))
+			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win, self.features[0].shape[-1]))
 		return model.to(self.device)
 
 	def _create_model_dir(self):
