@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 import torch
 from tqdm import tqdm
 
-from ML.Core.datasets import FixedLenMultiTimeSeries
+from ML.Core.datasets import FixedLenMultiTimeSeries, VariableLenMultiTimeSeries
 from ML.Zoo.seq2seq import Seq2Seq
 
 TIME_FORMAT = '%Y-%m-%d_%H-%M-%S'
@@ -108,6 +108,7 @@ def load_data_from_prssm_paper(
 
 
 def train_val_test_split(
+		use_variable_length_dataset: bool,
 		features: torch.Tensor,
 		targets: torch.Tensor,
 		train_percent: float,
@@ -123,6 +124,9 @@ def train_val_test_split(
 	creates a time series train-val-test dataset-split (not history) for multiple multivariate time series.
 	since a prediction should be on a single dataset, we create a dataset (and a dataloader) for each of
 	the datasets. In inference time, we can simply choose the dataloader using its index.
+	:param use_variable_length_dataset: if true, uses a dataset that is suited for list of tensors [t1,t2,...,tn],
+										with each ti shaped as (hi,f). Otherwise, uses a dataset that handles a
+										multi-dim tensor with shape (n,h,f), i.e fixed history for all n tensors.
 	:param features: the data itself
 	:param targets: the target(s)
 	:param train_percent: percentage of data to be considered as training data
@@ -135,6 +139,7 @@ def train_val_test_split(
 	:param targets_normalizer: a normalizer object for the targets of the training data
 	:return: for the training and validation - regular pytorch loader. for the test - a loader for every dataset.
 	"""
+	DatasetClass = VariableLenMultiTimeSeries if use_variable_length_dataset else FixedLenMultiTimeSeries
 	n_exp, hist_size, n_features = features.shape
 	train_size = int(train_percent * n_exp)
 	val_size = int(val_percent * n_exp)
@@ -143,11 +148,11 @@ def train_val_test_split(
 	features_train, targets_train = features[:train_size], targets[:train_size]
 	features_train = features_normalizer.fit_transform(features_train)  # statistics are set from training data
 	targets_train = targets_normalizer.fit_transform(targets_train)  # same
-	train_dataset = FixedLenMultiTimeSeries(features_train, targets_train, feature_window_size, target_window_size, intersect)
+	train_dataset = DatasetClass(features_train, targets_train, feature_window_size, target_window_size, intersect)
 	train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 	all_train_datasets = [
-		FixedLenMultiTimeSeries(features_train[i].unsqueeze(0), targets_train[i].unsqueeze(0), feature_window_size,
-								target_window_size, intersect) for i in range(features_train.shape[0])
+		DatasetClass(features_train[i].unsqueeze(0), targets_train[i].unsqueeze(0), feature_window_size,
+					 target_window_size, intersect) for i in range(features_train.shape[0])
 	]
 	all_train_dataloaders = [
 		torch.utils.data.DataLoader(all_train_datasets[i], batch_size=1, shuffle=False) for i in
@@ -158,11 +163,11 @@ def train_val_test_split(
 	features_val, targets_val = features[train_size:train_size + val_size], targets[train_size:train_size + val_size]
 	features_val = features_normalizer.transform(features_val)
 	targets_val = targets_normalizer.transform(targets_val)
-	val_dataset = FixedLenMultiTimeSeries(features_val, targets_val, feature_window_size, target_window_size, intersect)
+	val_dataset = DatasetClass(features_val, targets_val, feature_window_size, target_window_size, intersect)
 	val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 	all_val_datasets = [
-		FixedLenMultiTimeSeries(features_val[i].unsqueeze(0), targets_val[i].unsqueeze(0), feature_window_size,
-								target_window_size, intersect) for i in range(features_val.shape[0])
+		DatasetClass(features_val[i].unsqueeze(0), targets_val[i].unsqueeze(0), feature_window_size,
+					 target_window_size, intersect) for i in range(features_val.shape[0])
 	]
 	all_val_dataloaders = [
 		torch.utils.data.DataLoader(all_val_datasets[i], batch_size=1, shuffle=False) for i in
@@ -173,11 +178,11 @@ def train_val_test_split(
 	features_test, targets_test = features[train_size + val_size:], targets[train_size + val_size:]
 	features_test = features_normalizer.transform(features_test)
 	targets_test = targets_normalizer.transform(targets_test)
-	test_dataset = FixedLenMultiTimeSeries(features_test, targets_test, feature_window_size, target_window_size, intersect)
+	test_dataset = DatasetClass(features_test, targets_test, feature_window_size, target_window_size, intersect)
 	test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 	all_test_datasets = [
-		FixedLenMultiTimeSeries(features_test[i].unsqueeze(0), targets_test[i].unsqueeze(0),
-								feature_window_size, target_window_size, intersect) for i in range(features_test.shape[0])
+		DatasetClass(features_test[i].unsqueeze(0), targets_test[i].unsqueeze(0),
+					 feature_window_size, target_window_size, intersect) for i in range(features_test.shape[0])
 	]
 	all_test_dataloaders = [
 		torch.utils.data.DataLoader(all_test_datasets[i], batch_size=1, shuffle=False)
