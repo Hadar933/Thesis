@@ -68,11 +68,11 @@ class Trainer:
 
 		self.features_normalizer = NormalizerFactory.create(features_norm_method, features_global_normalizer)
 		self.targets_normalizer = NormalizerFactory.create(targets_norm_method, targets_global_normalizer)
-		self.features: torch.Tensor = torch.load(features_path).float()
-		self.targets: torch.Tensor = torch.load(targets_path).float()
-		if flip_history:  # fliplr is an alternative to [:,::-1,:], which is not yet supported as is in torch
-			self.features = torch.fliplr(self.features)
-			self.targets = torch.fliplr(self.targets)
+
+		self.features: torch.Tensor | list[torch.Tensor] = torch.load(features_path)
+		self.targets: torch.Tensor | list[torch.Tensor] = torch.load(targets_path)
+		self._handle_tensor_types_and_flip_history(flip_history)
+
 		self.device: torch.cuda.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 		self.model: torch.nn.Module = self._construct_model()
 		self.loss_fn: torch.nn.modules.loss
@@ -81,10 +81,39 @@ class Trainer:
 		self.optimizer: torch.optim.Optimizer = getattr(torch.optim, optimizer_name)(self.model.parameters())
 
 		self._create_model_dir()
-
-		self.data_dict = self._get_data()
+		use_var_len = True if (isinstance(self.features, list) and isinstance(self.targets, list)) else False
+		self.data_dict = utils.train_val_test_split(
+			use_variable_length_dataset=use_var_len,
+			features=self.features,
+			targets=self.targets,
+			train_percent=self.train_percent,
+			val_percent=self.val_percent,
+			feature_window_size=self.feature_win,
+			target_window_size=self.target_win,
+			intersect=self.intersect,
+			batch_size=self.batch_size,
+			features_normalizer=self.features_normalizer,
+			targets_normalizer=self.targets_normalizer
+		)
 		self.train_loader = self.data_dict['train']['loader']
 		self.val_loader = self.data_dict['val']['loader']
+
+	def _handle_tensor_types_and_flip_history(self, flip_history: bool) -> None:
+		"""
+		for both the features and the targets, sets the tensors as float types and flips the history dimension,
+		if needed. handles both tensors or list of tensors features and targets. To flip, we use `torch.fliplr` - an
+		alternative to [:,::-1,:], which is not yet supported as is in torch
+		:param flip_history: boolean indicating whether to keep the history dim intact or flip it
+		"""
+		if isinstance(self.features, torch.Tensor):
+			self.features = torch.fliplr(self.features.float()) if flip_history else self.features.float()
+		elif isinstance(self.features, list):
+			self.features = [torch.fliplr(t.float()) if flip_history else t.float() for t in self.features]
+
+		if isinstance(self.targets, torch.Tensor):
+			self.targets = torch.fliplr(self.targets.float()) if flip_history else self.targets.float()
+		elif isinstance(self.targets, list):
+			self.targets = [torch.fliplr(t.float()) if flip_history else t.float() for t in self.targets]
 
 	def _construct_criterion(self):
 		""" populates the loss and regularization functions based on the provided criterion name """
@@ -127,22 +156,6 @@ class Trainer:
 		if not os.path.exists(self.model_dir):
 			os.makedirs(self.model_dir)
 		utils.update_json(self.info_path, self.init_args)
-
-	def _get_data(self):
-		""" sets the train/val/test loaders and updates the training statistics in the yaml (for normalization)  """
-		data_dict = utils.train_val_test_split(
-			features=self.features,
-			targets=self.targets,
-			train_percent=self.train_percent,
-			val_percent=self.val_percent,
-			feature_window_size=self.feature_win,
-			target_window_size=self.target_win,
-			intersect=self.intersect,
-			batch_size=self.batch_size,
-			features_normalizer=self.features_normalizer,
-			targets_normalizer=self.targets_normalizer
-		)
-		return data_dict
 
 	def _calc_criterion(self, predictions: torch.Tensor, targets: torch.Tensor):
 		"""
