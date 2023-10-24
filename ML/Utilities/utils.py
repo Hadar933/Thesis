@@ -140,9 +140,9 @@ def train_val_test_split(
 	:return: for the training and validation - regular pytorch loader. for the test - a loader for every dataset.
 	"""
 	DatasetClass = VariableLenMultiTimeSeries if use_variable_length_dataset else FixedLenMultiTimeSeries
-	n_exp, hist_size, n_features = features.shape
-	train_size = int(train_percent * n_exp)
-	val_size = int(val_percent * n_exp)
+	n_datasets = len(features) if use_variable_length_dataset else features.shape[0]
+	train_size = int(train_percent * n_datasets)
+	val_size = int(val_percent * n_datasets)
 
 	# train loaders and per-dataset class:
 	features_train, targets_train = features[:train_size], targets[:train_size]
@@ -152,7 +152,7 @@ def train_val_test_split(
 	train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 	all_train_datasets = [
 		DatasetClass(features_train[i].unsqueeze(0), targets_train[i].unsqueeze(0), feature_window_size,
-					 target_window_size, intersect) for i in range(features_train.shape[0])
+					 target_window_size, intersect) for i in range(train_size)
 	]
 	all_train_dataloaders = [
 		torch.utils.data.DataLoader(all_train_datasets[i], batch_size=1, shuffle=False) for i in
@@ -167,7 +167,7 @@ def train_val_test_split(
 	val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 	all_val_datasets = [
 		DatasetClass(features_val[i].unsqueeze(0), targets_val[i].unsqueeze(0), feature_window_size,
-					 target_window_size, intersect) for i in range(features_val.shape[0])
+					 target_window_size, intersect) for i in range(val_size)
 	]
 	all_val_dataloaders = [
 		torch.utils.data.DataLoader(all_val_datasets[i], batch_size=1, shuffle=False) for i in
@@ -176,13 +176,14 @@ def train_val_test_split(
 
 	# test loaders and per-dataset class:
 	features_test, targets_test = features[train_size + val_size:], targets[train_size + val_size:]
+	test_size = len(features_test) if isinstance(features_test,list) else features_test.shape[0]
 	features_test = features_normalizer.transform(features_test)
 	targets_test = targets_normalizer.transform(targets_test)
 	test_dataset = DatasetClass(features_test, targets_test, feature_window_size, target_window_size, intersect)
 	test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 	all_test_datasets = [
 		DatasetClass(features_test[i].unsqueeze(0), targets_test[i].unsqueeze(0),
-					 feature_window_size, target_window_size, intersect) for i in range(features_test.shape[0])
+					 feature_window_size, target_window_size, intersect) for i in range(test_size)
 	]
 	all_test_dataloaders = [
 		torch.utils.data.DataLoader(all_test_datasets[i], batch_size=1, shuffle=False)
