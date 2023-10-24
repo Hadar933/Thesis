@@ -75,11 +75,13 @@ class VariableLenMultiTimeSeries(Dataset):
 		self.normalized_features: list[torch.Tensor] = features
 		self.normalized_targets: list[torch.Tensor] = targets
 
-		# Pre-calculate all rolling windows and store them in a list.
-		# Each element in the list is a tuple containing a feature window and a target window.
 		self.windows = self.calculate_windows()
 
 	def calculate_windows(self) -> list[tuple[torch.Tensor, torch.Tensor]]:
+		"""
+		Pre-calculate all rolling windows and store them in a list.
+		Each element in the list is a tuple containing a feature window and a target window.
+		"""
 		windows = []
 		for ds_idx, (feature_dataset, target_dataset) in tqdm(enumerate(
 				zip(self.normalized_features, self.normalized_targets)), total=len(self.normalized_features)):
