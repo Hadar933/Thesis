@@ -83,8 +83,8 @@ class VariableLenMultiTimeSeries(Dataset):
 		Each element in the list is a tuple containing a feature window and a target window.
 		"""
 		windows = []
-		for ds_idx, (feature_dataset, target_dataset) in tqdm(enumerate(
-				zip(self.normalized_features, self.normalized_targets)), total=len(self.normalized_features)):
+		for ds_idx, (feature_dataset, target_dataset) in enumerate(
+				zip(self.normalized_features, self.normalized_targets)):
 			n_samples = feature_dataset.shape[0]
 			n_windows = n_samples - self.feature_win + self.feature_target_intersect - self.target_win + 1
 			for win_idx in range(n_windows):
