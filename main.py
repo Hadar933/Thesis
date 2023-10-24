@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
 	use_hard_drive = True
 	human_verification_runtime = True
-	human_verification_tensors = False
+	variable_length_experiments = True
 	add_manual_crop = False
 	show_wing_tracker = False
 	show_angle_results = False
@@ -57,7 +57,6 @@ if __name__ == '__main__':
 	preprocessor = preprocess.DataFramePreprocess(['interpolate', 'resample'])
 	# encoder = encoders.Encoder(['torque'])
 
-	# the subdirectories of experiment names have the same names for cam2, cam3 we use cam2 w.l.o.g
 	photos_subdirs_name = sorted(os.listdir(f'{parent_dirname}\\experiments\\{exp_date}\\cam2'))
 	for curr_subdir_name in tqdm(photos_subdirs_name):
 		angles, trajectory_3d = Camera.main.get_angles(
@@ -106,23 +105,26 @@ if __name__ == '__main__':
 
 		angles_lst.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
 		forces_lst.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
-	lengths = sorted([len(f) for f in angles_lst])
-	trim_len = lengths[2]
-	print(f"Lengths: {lengths}\n trim_len: {trim_len}")
 
-	trimmed_angles = []
-	trimmed_forces = []
-	for angles, forces in zip(angles_lst, forces_lst):
-		angles = angles[:trim_len]
-		forces = forces[:trim_len]
-		if len(angles) == trim_len and len(forces) == trim_len:
-			trimmed_angles.append(angles)
-			trimmed_forces.append(forces)
+	if variable_length_experiments:  # saving a list of tensors with different length
+		kinematics = angles_lst
+		forces = forces_lst
+	else:  # trimming tensors so the length matches
+		lengths = sorted([len(f) for f in angles_lst])
+		trim_len = lengths[2]
+		print(f"Lengths: {lengths}\n trim_len: {trim_len}")
+		trimmed_angles = []
+		trimmed_forces = []
+		for angles, forces in zip(angles_lst, forces_lst):
+			angles = angles[:trim_len]
+			forces = forces[:trim_len]
+			if len(angles) == trim_len and len(forces) == trim_len:
+				trimmed_angles.append(angles)
+				trimmed_forces.append(forces)
 
-	kinematics = torch.stack(trimmed_angles)
-	forces = torch.stack(trimmed_forces)
-	print('k shape:', kinematics.shape)
-	print('f shape: ', forces.shape)
+		kinematics = torch.stack(trimmed_angles)
+		forces = torch.stack(trimmed_forces)
 
-	torch.save(forces, f"{parent_dirname}\\experiments\\{exp_date}\\forces.pt")
-	torch.save(kinematics, f"{parent_dirname}\\experiments\\{exp_date}\\kinematics.pt")
+	var_length_suffix = '_list' if variable_length_experiments else ''
+	torch.save(forces, f"{parent_dirname}\\experiments\\{exp_date}\\forces{var_length_suffix}.pt")
+	torch.save(kinematics, f"{parent_dirname}\\experiments\\{exp_date}\\kinematics{var_length_suffix}.pt")
