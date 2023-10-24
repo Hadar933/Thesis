@@ -20,32 +20,40 @@ class Normalizer(ABC):
 		self.global_normalizer = global_normalizer
 		self.norm_dim = 0 if self.global_normalizer else 1  # for dimensions (N*H,F) or (N,H,F)
 
-	def _handle_shape(self, tensor: torch.Tensor) -> torch.Tensor:
-		""" casts an input tensor to the required dimension given the global norm boolean"""
-		n_datasets, history_size, input_size = tensor.shape
-		return tensor.reshape(n_datasets * history_size, input_size) if self.global_normalizer else tensor
+	def _handle_shape(self, data: torch.Tensor | list[torch.Tensor]) -> torch.Tensor:
+		""" casts an input data to the required dimension given the global norm boolean"""
+		if not self.global_normalizer:  # TODO may not work for lists right now
+			return data
+
+		if isinstance(data, torch.Tensor):
+			n_datasets, history_size, input_size = data.shape
+			return data.reshape(n_datasets * history_size, input_size)
+
+		elif isinstance(data, list):
+			return torch.cat(data)
 
 	@abstractmethod
-	def fit(self, tensor: torch.Tensor) -> None:
+	def fit(self, data: torch.Tensor | list[torch.Tensor]) -> None:
 		""" computes relevant statistics to be used for later scaling. """
 		raise NotImplementedError
 
 	@abstractmethod
-	def transform(self, tensor: torch.Tensor) -> torch.Tensor:
+	def transform(self, data: torch.Tensor | list[torch.Tensor]) -> torch.Tensor | list[torch.Tensor]:
 		"""
-		normalizes (feature-wise) a tensor with shape (N,H,F). assumes the statistics are already given
+		normalizes (feature-wise) a tensor with shape (N,H,F), or a list of N tensors, each with variable shape (Hi,F)
+		assumes the statistics are already given
 		:return: tensor t such that for every i=0,1,2,...,N-1, the matrix t[i,:,:] columns are normalized
 		"""
 		raise NotImplementedError
 
 	@abstractmethod
-	def fit_transform(self, tensor: torch.Tensor) -> torch.Tensor:
+	def fit_transform(self, data: torch.Tensor | list[torch.Tensor]) -> torch.Tensor | list[torch.Tensor]:
 		""" calls fit and then transform one after the other """
 		raise NotImplementedError
 
 	@abstractmethod
-	def inverse_transform(self, tensor: torch.Tensor) -> torch.Tensor:
-		""" converts a normalized tensor to its original values. assumes the statistics are already given. """
+	def inverse_transform(self, data: torch.Tensor | list[torch.Tensor]) -> torch.Tensor | list[torch.Tensor]:
+		""" converts a normalized data to its original values. assumes the statistics are already given. """
 		raise NotImplementedError
 
 
@@ -57,27 +65,32 @@ class ZScore(Normalizer):
 		self.mean_val = None
 		self.std_val = None
 
-	def fit(self, tensor: torch.Tensor):
-		tensor = self._handle_shape(tensor)
-		self.mean_val = tensor.mean(self.norm_dim, keepdim=True)
-		self.std_val = tensor.std(self.norm_dim, keepdim=True)
+	def fit(self, data: torch.Tensor | list[torch.Tensor]) -> None:
+		data = self._handle_shape(data)
+		self.mean_val = data.mean(self.norm_dim, keepdim=True)
+		self.std_val = data.std(self.norm_dim, keepdim=True)
 
-	def transform(self, tensor: torch.Tensor) -> torch.Tensor:
-		zscore_tensor = (tensor - self.mean_val) / self.std_val
-		return zscore_tensor
+	def transform(self, data: torch.Tensor | list[torch.Tensor]) -> torch.Tensor | list[torch.Tensor]:
+		if isinstance(data, torch.Tensor):
+			return (data - self.mean_val) / self.std_val
+		elif isinstance(data, list):
+			return [(tensor - self.mean_val) / self.std_val for tensor in data]
 
-	def fit_transform(self, tensor: torch.Tensor) -> torch.Tensor:
-		self.fit(tensor)
-		return self.transform(tensor)
+	def fit_transform(self, data: torch.Tensor | list[torch.Tensor]) -> torch.Tensor | list[torch.Tensor]:
+		self.fit(data)
+		return self.transform(data)
 
-	def inverse_transform(self, tensor: torch.Tensor) -> torch.Tensor:
-		inv_norm_tensor = tensor * self.std_val + self.mean_val
-		return inv_norm_tensor
+	def inverse_transform(self, data: torch.Tensor | list[torch.Tensor]) -> torch.Tensor | list[torch.Tensor]:
+		if isinstance(data, torch.Tensor):
+			return data * self.std_val + self.mean_val
+		elif isinstance(data, list):
+			return [tensor * self.std_val + self.mean_val for tensor in data]
 
 
 class MinMax(Normalizer):
 	""" min-max scaler, maps x -> [ x - min(x) ] / [ max(x) - min(x) ] """
 
+	# TODO: add list of tensors support like in zscore
 	def __init__(self, global_normalizer: bool = True):
 		super().__init__(global_normalizer)
 		self.min_val = None
@@ -167,4 +180,4 @@ if __name__ == '__main__':
 		df_finvmm = pd.DataFrame(invmm_forces[exp], columns=[f"My_Inv_MinMax_{i}" for i in range(F)])
 
 		df = pd.concat([df_f, df_fz, df_fmm, df_finvz, df_finvmm], axis=1)  # , df_fskz, df_fskmm], axis=1)
-		# utils.plot(df, title=f"global_norm={global_normalizer}, experiment#={exp}")
+# utils.plot(df, title=f"global_norm={global_normalizer}, experiment#={exp}")
