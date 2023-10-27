@@ -49,15 +49,24 @@ def set_time_index(df: pd.DataFrame, freq: float = 25.0):
 
 def plot_df_with_plotly(
 		df: pd.DataFrame,
+		ignore_cols: list[str] | None = None,
 		title: str = "Data vs Time",
 		x_title: str = "time / steps",
 		y_title: str = "Data",
 		save_path: str | None = None
 ) -> None:
 	"""plots a df with plotly resampler"""
+	if ignore_cols is None:
+		ignore_cols = []
 	fig = FigureResampler(go.Figure())
-	for col in df.columns:
-		fig.add_trace(go.Scattergl(name=col, showlegend=True), hf_x=df.index, hf_y=df[col])
+	cols_to_plot = [col for col in df.columns if col not in ignore_cols]
+	if isinstance(df.index, pd.TimedeltaIndex):
+		x_axis = df.index.total_seconds()
+		x_title = 'time [sec]'
+	else:
+		x_axis = df.index
+	for col in cols_to_plot:
+		fig.add_trace(go.Scattergl(name=col, showlegend=True), hf_x=x_axis, hf_y=df[col])
 	fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, margin=dict(l=20, r=20, t=30, b=0),
 					  height=700)
 	if save_path is not None:
@@ -315,5 +324,11 @@ def plot_with_background(x_values: torch.Tensor, y_values: torch.Tensor, w_value
 
 
 if __name__ == '__main__':
-	kinematics, forces = load_data_from_prssm_paper()
-	z = 2
+	exp_date = '19_10_2023'
+	exp_name = '[F=7.886_A=M_PIdiv5.401_K=0.03]'
+	filename = 'merged_data_preprocessed_and_encoded.pkl'
+	plot_df_with_plotly(
+		df=pd.read_pickle(fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}\{filename}"),
+		ignore_cols=['p0', 'p1', 'p2', 'center_of_mass']
+	)
+
