@@ -8,9 +8,6 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 import numpy as np
 
-from Camera import camera_utils
-from Forces import parse_forces, force_utils
-
 
 def results_plotter(kinematics_path: str, forces_path: str):
 	""" an interactive dash plot for the kinematics and forces torch tensors """
@@ -49,35 +46,6 @@ def results_plotter(kinematics_path: str, forces_path: str):
 		return figure
 
 	app.run_server(debug=True)
-
-
-def playground_plotter_np(exp_name='[F=5.037_A=M_PIdiv4.86_K=0.188]'):
-	matplotlib.use('TkAgg')
-	date = '23_10_2023'
-	traject_path = fr"E:\Hadar\experiments\{date}\results\{exp_name}\trajectories.npy"
-	angles_path = fr"E:\Hadar\experiments\{date}\results\{exp_name}\angles.npy"
-	force_path = fr"E:\Hadar\experiments\{date}\forces\Forces{exp_name}.csv"
-
-	forces_df, _ = parse_forces.read_forces_csv(csv_filename=force_path, header_row_count=21, tare=[])  # in newtons
-	f1, f2, f3, f4 = forces_df['F1'], forces_df['F2'], forces_df['F3'], forces_df['F4']
-	forces_df['sum'] = f1 + f2 + f3 + f4
-	radius = 6  # millimeters
-	forces_df['tau_x=f1+f2-f3-f4'] = (radius / 2) * ((f1 + f2) - (f3 + f4))
-	forces_df['tau_y=f2+f3-f1-f4'] = (radius / 2) * ((f2 + f3) - (f1 + f4))
-
-	angles_df = pd.DataFrame(np.load(angles_path).T, columns=['theta', 'phi', 'psi'])
-
-	center_of_mass = camera_utils.calc_wing_center_of_mass(np.load(traject_path), do_plot=True)
-	inertial_force = force_utils.calc_inertial_force(center_of_mass)
-	forces_df['inertia'] = inertial_force
-
-	df = pd.concat([forces_df, angles_df], axis=1)
-
-	fig = go.Figure()
-	for col in df.columns:
-		fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col))
-	fig.show()
-	fig.write_html(f'plot{exp_name}.html')
 
 
 def playground_plotter_tensors(i):
@@ -147,7 +115,6 @@ def remove_and_trim_datasets(kinematics_path, forces_path, save=True, basic_plot
 
 if __name__ == '__main__':
 	# playground_plotter(10)
-	playground_plotter_np()
 	exp_date = '19_10_2023'
 	fpath = fr'G:\My Drive\Master\Lab\Thesis\Results\{exp_date}\forces_list.pt'
 	kpath = fr'G:\My Drive\Master\Lab\Thesis\Results\{exp_date}\kinematics_list.pt'
