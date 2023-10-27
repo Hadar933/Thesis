@@ -54,8 +54,8 @@ if __name__ == '__main__':
 		'NumBlobs': 3, 'minArea': 100, 'winSize': (15, 15), 'maxLevel': 2,
 		'criteria': (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)
 	}
-	preprocessor = preprocess.DataFramePreprocess(['interpolate', 'resample'])
-	# encoder = encoders.Encoder(['torque'])
+	preprocessor = preprocess.DataFramePreprocess(['resample', 'interpolate'])
+	encoder = encoders.Encoder(['center_of_mass', 'inertial_force', 'torque', 'sum_cols']) # TODO add abstract cls like in preprocess
 
 	photos_subdirs_name = sorted(os.listdir(f'{parent_dirname}\\experiments\\{exp_date}\\cam2'))
 	for curr_subdir_name in tqdm(photos_subdirs_name):
@@ -103,9 +103,14 @@ if __name__ == '__main__':
 			if input('Is this one bad? [y/Any]') == 'y':
 				continue
 
-		df = preprocessor.run(df)
-		# df = encoder.run(df)
-
+		processed_path = (f"{parent_dirname}\\experiments\\{exp_date}\\results\\{curr_subdir_name.split('Photos')[1]}\\"
+						  f"merged_data_preprocessed_and_encoded.pkl")
+		if not os.path.exists(processed_path):
+			df = preprocessor.run(df)
+			df = encoder.run(df)
+			df.to_pickle(processed_path)
+		else:
+			df = pd.read_pickle(processed_path)
 		angles_lst.append(torch.tensor(df[['theta', 'phi', 'psi']].values))
 		forces_lst.append(torch.tensor(df[['F1', 'F2', 'F3', 'F4']].values))
 
