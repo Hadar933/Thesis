@@ -20,6 +20,9 @@ class Preprocess(ABC):
 				and func != 'run'
 			]
 		}
+		self._force_cols = ['F1', 'F2', 'F3', 'F4']
+		self._angle_cols = ['phi', 'theta', 'psi']
+		self._points_cols = ['p0', 'p1', 'p2']
 
 	def run(
 			self,
@@ -43,8 +46,8 @@ class DataFramePreprocess(Preprocess):
 		"""
 		super(DataFramePreprocess, self).__init__(preprocessing_tasks)
 
-	@staticmethod
 	def resample(
+			self,
 			df: pd.DataFrame,
 			**kwargs
 	) -> pd.DataFrame:
@@ -53,9 +56,21 @@ class DataFramePreprocess(Preprocess):
 		:param df:
 		:return:
 		"""
+
+		def xyz_mean(batch):
+			sum1, sum2, sum3 = 0, 0, 0
+			for item in batch:
+				sum1 += item[0]
+				sum2 += item[1]
+				sum3 += item[2]
+			n = len(batch)
+			return np.array([round(sum1 / n, 5), round(sum2 / n, 5), round(sum3 / n, 5)])
+
 		resample_freq = kwargs.get('resample_freq', '200us')
 		logger.info(f'Resampling with freq = {resample_freq}')
-		df = df.resample(resample_freq).mean()
+		agg_dict = {col: xyz_mean if col in self._points_cols else 'mean' for col in df.columns}
+
+		df = df.resample(resample_freq).agg(agg_dict)
 		return df
 
 	@staticmethod
