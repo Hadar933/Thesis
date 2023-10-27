@@ -169,7 +169,8 @@ def plot_trajectories(
 		trajectory_3d: np.ndarray,
 		wing_plane_jmp: int = -1,
 		leading_edge_vec_jump: int = -1,
-		add_to_title: str = ''
+		add_to_title: str = '',
+		center_of_mass_point: Optional[np.ndarray] = None
 ):
 	"""
 	plots one or more trajectories in 3d, where z: depth, y: height, x: width
@@ -177,7 +178,7 @@ def plot_trajectories(
 	:param wing_plane_jmp: if > 0, plots a triangle that represents the wing plane every wing_plane_jmp frames
 	:param leading_edge_vec_jump if > 0 plots the leading edge vector every leading_edge_vec_jump frames.
 	:param add_to_title: a string we can concat to the tile of the plot
-
+	:param center_of_mass_point: we can also plot another 4th point on our 3D plotter, which is usually the COM point
 	"""
 	mpl.use('TkAgg')
 	fig = plt.figure(figsize=(12, 12))
@@ -186,6 +187,11 @@ def plot_trajectories(
 	ax.plot3D(trajectory_3d[0, :, 0], trajectory_3d[0, :, 1], trajectory_3d[0, :, 2], linewidth=2, label='tip')
 	ax.plot3D(trajectory_3d[1, :, 0], trajectory_3d[1, :, 1], trajectory_3d[1, :, 2], linewidth=2, label='bottom')
 	ax.plot3D(trajectory_3d[2, :, 0], trajectory_3d[2, :, 1], trajectory_3d[2, :, 2], linewidth=2, label='base')
+
+	if center_of_mass_point is not None:
+		ax.plot3D(center_of_mass_point[:, 0], center_of_mass_point[:, 1], center_of_mass_point[:, 2], linewidth=2,
+				  label='C.O.M')
+
 	if wing_plane_jmp > 0:
 		triangle_points_order = [0, 1, 2, 0]
 
@@ -239,6 +245,32 @@ def plot_angles(
 # ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 # ║                                            Other                                                             ║
 # ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+def calc_wing_center_of_mass(
+		trajectories_3d: np.ndarray,
+		lambda1: float = -0.173,
+		lambda2: float = 0.857,
+		do_plot: bool = False
+):
+	"""
+
+	uses the same p0,p1,p2 wing points notation as to_3d.xyz2euler
+
+	:param trajectories_3d:
+	:param lambda1:
+	:param lambda2:
+	:param do_plot:
+
+	:return:
+	"""
+	p0, p1, p2 = trajectories_3d  # = B, C, A
+	vec1 = p2 - p0  # AB
+	vec2 = p2 - p1  # AC
+	center_of_mass = lambda1 * vec1 + lambda2 * vec2  # TODO: not working?
+	center_of_mass = (p0 + p1 + p2) / 3  # close enough to COM
+	if do_plot:
+		plot_trajectories(trajectories_3d, wing_plane_jmp=1000, center_of_mass_point=center_of_mass)
+	return center_of_mass
 
 
 def save_to_mat(data: np.ndarray, save_path: str) -> None:
