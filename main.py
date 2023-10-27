@@ -12,7 +12,7 @@ from DataHandler import encoders, preprocess
 
 if __name__ == '__main__':
 
-	exp_date = '23_10_2023'
+	exp_date = '19_10_2023'
 	assert (
 			os.path.exists(rf"Camera\calibrations\{exp_date}\cameraMatrix1.mat") and
 			os.path.exists(rf"Camera\calibrations\{exp_date}\cameraMatrix2.mat")
@@ -23,7 +23,7 @@ if __name__ == '__main__':
 	), 'preset camera configuration files missing'
 
 	use_hard_drive = True
-	human_verification_runtime = True
+	human_verification_runtime = False
 	variable_length_experiments = True
 	add_manual_crop = False
 	show_wing_tracker = False
@@ -85,6 +85,9 @@ if __name__ == '__main__':
 		forces_df = forces_df[crop_this_many_samples_from_prefix:].reset_index(drop=True)
 
 		df = DataHandler.trigger.merge_data(
+			exp_date=exp_date,
+			parent_dirname=parent_dirname,
+			photos_sub_dirname=curr_subdir_name,
 			trajectory_3d=trajectory_3d,
 			angles_df=angles_df,
 			forces_df=forces_df,
