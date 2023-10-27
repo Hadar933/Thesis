@@ -1,9 +1,8 @@
 import os
-import time
-
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from loguru import logger
 from numpy.linalg import norm
 import pandas as pd
 import Camera.tracker
@@ -115,12 +114,17 @@ def plot_start(camera_start, forces_start, camera_df, forces_df) -> None:
 	plt.show()
 
 
-def trim_and_join(force_start, camera_start, force_sample_freq, camera_sample_freq, force_df, angles_df):
+def trim_and_join(force_start, camera_start, force_sample_freq, camera_sample_freq, force_df, angles_df,
+				  trajectory_3d_df):
 	angles_df = angles_df[camera_start:]
 	angles_df.index = pd.timedelta_range(start='0', periods=len(angles_df), freq=camera_sample_freq)
+
+	trajectory_3d_df = trajectory_3d_df[camera_start:]
+	trajectory_3d_df.index = pd.timedelta_range(start='0', periods=len(trajectory_3d_df), freq=camera_sample_freq)
+
 	force_df = force_df[force_start:]
 	force_df.index = pd.timedelta_range(start='0', periods=len(force_df), freq=force_sample_freq)
-	return angles_df, force_df
+	return angles_df, force_df, trajectory_3d_df
 
 
 from scipy.signal import hilbert
@@ -149,22 +153,30 @@ def find_start_indices(y):
 
 
 def merge_data(
-		exp_date,
-		parent_dirname,
-		photos_sub_dirname,
-		trajectory_3d,
+		exp_date: str,
+		parent_dirname: str,
+		photos_sub_dirname: str,
+		trajectory_3d: np.ndarray,
 		angles_df: pd.DataFrame,
 		forces_df: pd.DataFrame,
-		camera_freq, force_freq,
-		camera_threshold,
-		force_threshold,
-		smooth_kernel_size,
-		smooth_method,
-		show_start_indicators
-):
+		camera_freq: str,
+		force_freq: str,
+		camera_threshold: float,
+		force_threshold: float,
+		smooth_kernel_size: int,
+		smooth_method: str,
+		show_start_indicators: bool
+) -> pd.DataFrame:
 	main_path = f"{parent_dirname}\\experiments\\{exp_date}\\results\\{photos_sub_dirname.split('Photos')[1]}"
-	if os.path.exists(f"{main_path}\\forces_angles_merged.pkl"):
-		return pd.read_pickle(f"{main_path}\\forces_angles_merged.pkl")
+	if os.path.exists(f"{main_path}\\merged_data.pkl"):
+		logger.info(f"Loading {main_path}\\merged_data.pkl from memory...")
+		return pd.read_pickle(f"{main_path}\\merged_data.pkl")
+
+	trajectory_3d_df = pd.DataFrame({
+		'p0': [xyz for xyz in trajectory_3d[0]],
+		'p1': [xyz for xyz in trajectory_3d[1]],
+		'p2': [xyz for xyz in trajectory_3d[2]],
+	})
 	forces_start = find_start_based_on_pairwise_df_rows_dist(
 		df=forces_df,
 		threshold=force_threshold,
@@ -175,21 +187,24 @@ def merge_data(
 		threshold=camera_threshold,
 		trajectory_3d=trajectory_3d
 	)
-	angles_df, forces_df = trim_and_join(
+
+	if show_start_indicators:
+		plot_start(camera_start, forces_start, angles_df, forces_df)
+
+	angles_df, forces_df, trajectory_3d_df = trim_and_join(
 		force_start=forces_start,
 		camera_start=camera_start,
 		force_sample_freq=force_freq,
 		camera_sample_freq=camera_freq,
 		force_df=forces_df,
-		angles_df=angles_df
+		angles_df=angles_df,
+		trajectory_3d_df=trajectory_3d_df
 	)
-	forces_angles_merged_df = angles_df.join(forces_df)
-	forces_angles_merged_df.to_pickle(f"{main_path}\\forces_angles_merged.pkl")
+	all_merged = angles_df.join(forces_df).join(trajectory_3d_df)
+	all_merged.to_pickle(f"{main_path}\\merged_data.pkl")
 	pd.DataFrame({
 		'camera_start': [camera_start],
 		'force_start': [forces_start]}
 	).to_pickle(f"{main_path}\\starts.pkl")
 
-	if show_start_indicators:
-		plot_start(camera_start, forces_start, angles_df, forces_df)
-	return forces_angles_merged_df
+	return all_merged
