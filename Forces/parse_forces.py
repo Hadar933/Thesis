@@ -52,9 +52,3 @@ def plot_forces(
 			grid=True)
 	plt.show()
 
-
-if __name__ == '__main__':
-	df, head = read_forces_csv(
-		r"C:\Users\hadar\OneDrive\Desktop\tst.csv", 21)
-	plot_forces(df, head)
-	z = 2
