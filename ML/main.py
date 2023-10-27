@@ -6,7 +6,7 @@ import torch
 from ML.Utilities import utils
 
 if __name__ == '__main__':
-	exp_time = '23_10_2023'
+	exp_time = '19_10_2023'
 	train_percent = 0.85
 	val_percent = 0.1
 	feature_win = 256
@@ -15,7 +15,7 @@ if __name__ == '__main__':
 	batch_size = 512
 	n_epochs = 20
 	seed = 3407
-	criterion = 'L1Loss + pv_l1'
+	criterion = 'L1Loss'
 	regularization_factor = 10
 	optimizer = 'Adam'
 	patience = 10
@@ -45,7 +45,7 @@ if __name__ == '__main__':
 	for emb_size in [1]:
 		for hid_size in [1]:
 			for nlayers in [1]:
-				exp_name = f"pv_l1_test"
+				exp_name = f"test_var_len_data"
 				seq2seq_args = dict(
 					input_dim=input_dim,
 					target_lag=target_win,
@@ -81,8 +81,8 @@ if __name__ == '__main__':
 					target_win=target_win,
 					intersect=intersect,
 					batch_size=batch_size,
-					model_class_name=rnn_name,
-					model_args=rnn_args,
+					model_class_name=mlp_name,
+					model_args=mlp_args,
 					exp_name=exp_name,
 					optimizer_name=optimizer,
 					criterion_name=criterion,
