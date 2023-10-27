@@ -81,7 +81,7 @@ def xyz2euler(trajectories_3d: np.ndarray) -> np.ndarray:
 	#             \  (1)                  /
 	#               ---------------------
 	#     where (i) is the index in trajectories_3d. From what I've seen, this is always the case as the points are
-	#     sorted using L2 distance from (0,0), but you'd have to verify this.
+	#     sorted using L2 distance from (0,0).
 	# takes in a np array of trajectories in cartesian coordinates and converts it to array of wing angles phi,theta,psi
 	# :param trajectories_3d: a np array (n_trajectories,m_points_per_trajectory,3) where 3 indicates [x,y,z]
 	# :return: a np array (m_points_per_trajectory, 3) where 3 indicates [theta,phi,psi], and
