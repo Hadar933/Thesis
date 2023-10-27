@@ -65,6 +65,24 @@ def plot_df_with_plotly(
 	pyo.plot(fig, filename='temp-plot.html', auto_open=True)
 
 
+def plot_dict_with_plotly(
+		data: dict[str, list],
+		title: str = "Data vs Time",
+		x_title: str = "time / steps",
+		y_title: str = "Data",
+		save_path: str | None = None
+) -> None:
+	"""plots a df with plotly resampler"""
+	fig = FigureResampler(go.Figure())
+	for key in data.keys():
+		fig.add_trace(go.Scattergl(name=key, showlegend=True), hf_x=data.index, hf_y=data[key])
+	fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, margin=dict(l=20, r=20, t=30, b=0),
+					  height=700)
+	if save_path is not None:
+		fig.write_html(save_path)
+	pyo.plot(fig, filename='temp-plot.html', auto_open=True)
+
+
 def read_gzip(data_path: str) -> pd.DataFrame:
 	"""	reads a gzip file with possible 'ts' column and saves the df as the preprocessed data. """
 	try:
@@ -176,7 +194,7 @@ def train_val_test_split(
 
 	# test loaders and per-dataset class:
 	features_test, targets_test = features[train_size + val_size:], targets[train_size + val_size:]
-	test_size = len(features_test) if isinstance(features_test,list) else features_test.shape[0]
+	test_size = len(features_test) if isinstance(features_test, list) else features_test.shape[0]
 	features_test = features_normalizer.transform(features_test)
 	targets_test = targets_normalizer.transform(targets_test)
 	test_dataset = DatasetClass(features_test, targets_test, feature_window_size, target_window_size, intersect)
