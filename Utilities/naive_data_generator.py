@@ -20,8 +20,8 @@ class loguniform_int:
 		return self._distribution.rvs(*args, **kwargs).astype(int)
 
 
-def get_data():
-	forces = torch.load(r'/Results/10_10_2023/forces.pt')
+def get_data(forces_path: str = r'/Results/10_10_2023/forces.pt'):
+	forces = torch.load(forces_path)
 	forces = forces.view(92 * 2908, 4)
 	features = forces[:, [0, 2, 3]].numpy()
 	targets = forces[:, [1]].numpy().squeeze(1)
@@ -31,10 +31,7 @@ def get_data():
 def optimize_hyperparameters(data_train, target_train):
 	model = Pipeline([
 		("scaler", StandardScaler()),
-		(
-			"regressor",
-			HistGradientBoostingRegressor(random_state=42),
-		),
+		("regressor", HistGradientBoostingRegressor(random_state=42))
 	])
 
 	params = {
@@ -62,8 +59,7 @@ def train_final_model(features, targets, best_params):
 	model_args = {key.split('__')[1]: val for key, val in best_params.items()}
 	model = Pipeline([
 		("scaler", StandardScaler()),
-		("regressor", HistGradientBoostingRegressor(**model_args, verbose=2),
-		 ),
+		("regressor", HistGradientBoostingRegressor(**model_args, verbose=2))
 	])
 	model.fit(features, targets)
 	return model
@@ -85,8 +81,8 @@ def plotter(y_test, y_pred, slice: bool):
 	plt.show()
 
 
-def generate_new_data(best_model):
-	old_forces = torch.load(r'/Results/22_09_2023/forces.pt').numpy()
+def generate_new_data(best_model, old_forces_path=r'/Results/22_09_2023/forces.pt'):
+	old_forces = torch.load(old_forces_path).numpy()
 	tensors_list = []
 	for i in range(len(old_forces)):
 		curr_experiment = old_forces[i]
