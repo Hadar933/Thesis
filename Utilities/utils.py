@@ -1,4 +1,6 @@
 import os.path
+
+import dash
 import torch
 import imageio
 import scipy
@@ -8,8 +10,10 @@ import plotly.offline as pyo
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from dash import html, dcc, Output, Input
 
 from matplotlib import pyplot as plt
+from plotly import graph_objects as go
 from plotly_resampler import FigureResampler
 from tqdm import tqdm
 from typing import Literal
@@ -23,6 +27,47 @@ TIME_FORMAT = '%Y-%m-%d_%H-%M-%S'
 # ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 # ║                                               PLOTTING                                                       ║
 # ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+def results_plotter(
+		kinematics_path: str,
+		forces_path: str
+) -> None:
+	""" an interactive dash plot for the kinematics and forces torch tensors """
+	# matplotlib.use('TkAgg')
+
+	kinematics = torch.load(kinematics_path)
+	forces = torch.load(forces_path)
+	app = dash.Dash(__name__)
+	app.layout = html.Div([
+		html.H1("Kinematics and Forces Data Visualization"),
+		dcc.Dropdown(
+			id='dataset-dropdown',
+			options=[{'label': f'Dataset {i}', 'value': i} for i in range(kinematics.size(0))],
+			value=0  # Default value
+		),
+		dcc.Graph(id='combined-graph')
+	])
+
+	@app.callback(
+		Output('combined-graph', 'figure'),
+		[Input('dataset-dropdown', 'value')]
+	)
+	def update_graph(selected_dataset):
+		""" updates the graph based on the dataset index chosen in the dropdown menu """
+		phi_trace = go.Scatter(y=kinematics[selected_dataset, :, 0].numpy(), mode='lines', name='phi')
+		psi_trace = go.Scatter(y=kinematics[selected_dataset, :, 1].numpy(), mode='lines', name='psi')
+		force_traces = [go.Scatter(y=forces[selected_dataset, :, i].numpy(), mode='lines', name=f'F{i + 1}')
+						for i in range(4)]
+		traces = [phi_trace, psi_trace] + force_traces
+		layout = go.Layout(
+			title=f'Kinematics and Forces for Experiment {selected_dataset}',
+			xaxis=dict(title='Sample'),
+			yaxis=dict(title='Value')
+		)
+		figure = {'data': traces, 'layout': layout}
+		return figure
+
+	app.run_server(debug=True)
+
 
 def plot_df_with_plotly(
 		df: pd.DataFrame,
@@ -319,6 +364,55 @@ def format_df_torch_entries(
 			new_df = pd.concat([new_df, new_cols], axis=1)
 
 	return new_df
+
+
+def remove_and_trim_datasets(
+		kinematics_path: str,
+		forces_path: str,
+		save: bool = True,
+		basic_plot: bool = True,
+		keep_as_list: bool = True
+) -> None:
+	"""
+	a basic function that plots the data and allows to slice it and/or remove it altogether.
+	:param kinematics_path: path to tensor or list of tensors kinematics
+	:param forces_path: path to tensor or list of tensors forces
+	:param save: if true, saves the results
+	:param basic_plot: if true, plot a jpg, otherwise plots an interactive plot on html
+	:param keep_as_list: if false, stacks as torch tensor, otherwise keeps values in list (for var-len dataset)
+	"""
+	forces_to_keep = []
+	kinematics_to_keep = []
+	forces = torch.load(forces_path)
+	kinematics = torch.load(kinematics_path)
+	for dataset_idx in tqdm(range(len(forces))):
+		curr = torch.cat((forces[dataset_idx], kinematics[dataset_idx]), dim=1)
+		df = pd.DataFrame(curr, columns='f1 f2 f3 f4 theta phi psi'.split())
+		if basic_plot:
+			df.plot()
+			xticks_location = np.linspace(df.index.min(), df.index.max(), num=20)  # 20 ticks
+			plt.xticks(xticks_location, rotation=45)
+			plt.grid()
+			plt.show()
+		else:
+			plot_df_with_plotly(df)
+		if input('Is this one bad? [y/Any]') == 'y':
+			continue
+		curr_force = forces[dataset_idx]
+		curr_kinematics = kinematics[dataset_idx]
+		trim_suffix_index = input('add suffix index: ')
+		if trim_suffix_index:
+			curr_force = curr_force[:int(trim_suffix_index)]
+			curr_kinematics = curr_kinematics[:int(trim_suffix_index)]
+		forces_to_keep.append(curr_force)
+		kinematics_to_keep.append(curr_kinematics)
+
+	if not keep_as_list:
+		forces_to_keep = torch.stack(forces_to_keep)
+		kinematics_to_keep = torch.stack(kinematics_to_keep)
+	if save:
+		torch.save(forces_to_keep, forces_path.replace('.pt', '_cleaned.pt'))
+		torch.save(kinematics_to_keep, kinematics_path.replace('.pt', '_cleaned.pt'))
 
 
 if __name__ == '__main__':
