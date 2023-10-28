@@ -246,38 +246,8 @@ def plot_angles(
 # ║                                            Other                                                             ║
 # ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-def calc_wing_center_of_mass(
-		trajectories_3d: np.ndarray,
-		lambda1: float = -0.173,
-		lambda2: float = 0.857,
-		do_plot: bool = False
-):
-	"""
-
-	uses the same p0,p1,p2 wing points notation as to_3d.xyz2euler
-
-	:param trajectories_3d:
-	:param lambda1:
-	:param lambda2:
-	:param do_plot:
-
-	:return:
-	"""
-	p0, p1, p2 = trajectories_3d  # = B, C, A
-	vec1 = p2 - p0  # AB
-	vec2 = p2 - p1  # AC
-	center_of_mass = lambda1 * vec1 + lambda2 * vec2  # TODO: not working?
-	center_of_mass = (p0 + p1 + p2) / 3  # close enough to COM
-	if do_plot:
-		plot_trajectories(trajectories_3d, wing_plane_jmp=1000, center_of_mass_point=center_of_mass)
-	return center_of_mass
-
-
-def save_to_mat(data: np.ndarray, save_path: str) -> None:
-	scipy.io.savemat(save_path, {'data': data})
-
-
 def copy_keypoint(original_keypoint: cv2.KeyPoint):
+	""" copy the content of one cv2 keypoint object to another"""
 	copied_keypoint = cv2.KeyPoint()
 	copied_keypoint.pt = original_keypoint.pt
 	copied_keypoint.size = original_keypoint.size

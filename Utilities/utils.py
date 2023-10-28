@@ -16,7 +16,7 @@ from matplotlib import pyplot as plt
 from plotly import graph_objects as go
 from plotly_resampler import FigureResampler
 from tqdm import tqdm
-from typing import Literal
+from typing import Literal, Optional
 
 from ML.Core.datasets import FixedLenMultiTimeSeries, VariableLenMultiTimeSeries
 from ML.Zoo.seq2seq import Seq2Seq
@@ -329,6 +329,14 @@ def train_val_test_split(
 # ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 # ║                                                  OTHER                                                       ║
 # ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+def save_np_to_matlab_mat(
+		data: np.ndarray,
+		save_path: str,
+		key_name: Optional[str] = None
+) -> None:
+	scipy.io.savemat(save_path, {key_name if key_name else 'data': data})
+
 
 def update_json(yaml_path: str, new_data):
 	""" updates a given yaml file with new data dictionary """
