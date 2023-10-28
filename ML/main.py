@@ -27,7 +27,7 @@ if __name__ == '__main__':
 	flip_history = True
 
 	use_hard_drive = False
-	parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../ResultsHandler'
+	parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
 	forces_path = os.path.join(parent_dirname, exp_time, 'forces_list.pt')
 	kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics_list.pt')
 
