@@ -3,7 +3,7 @@ import os
 from ML.Core.trainer import Trainer
 import torch
 
-from ML.Utilities import utils
+from Utilities import utils
 
 if __name__ == '__main__':
 	exp_time = '19_10_2023'
@@ -27,7 +27,7 @@ if __name__ == '__main__':
 	flip_history = True
 
 	use_hard_drive = False
-	parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
+	parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../ResultsHandler'
 	forces_path = os.path.join(parent_dirname, exp_time, 'forces_list.pt')
 	kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics_list.pt')
 
