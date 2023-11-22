@@ -6,7 +6,7 @@ import torch
 from Utilities import utils
 
 if __name__ == '__main__':
-	exp_time = '19_10_2023'
+	exp_time = '22_11_2023'
 	train_percent = 0.85
 	val_percent = 0.1
 	feature_win = 256
@@ -28,8 +28,8 @@ if __name__ == '__main__':
 
 	use_hard_drive = False
 	parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
-	forces_path = os.path.join(parent_dirname, exp_time, 'forces_list.pt')
-	kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics_list.pt')
+	forces_path = os.path.join(parent_dirname, exp_time, 'f19+f23_list_clean.pt')
+	kinematics_path = os.path.join(parent_dirname, exp_time, 'k19+k23_list_clean.pt')
 
 	forces, kinematics = torch.load(forces_path), torch.load(kinematics_path)
 	if isinstance(forces, list) and isinstance(kinematics, list):
@@ -81,8 +81,8 @@ if __name__ == '__main__':
 					target_win=target_win,
 					intersect=intersect,
 					batch_size=batch_size,
-					model_class_name=mlp_name,
-					model_args=mlp_args,
+					model_class_name=seq2seq_name,
+					model_args=seq2seq_args,
 					exp_name=exp_name,
 					optimizer_name=optimizer,
 					criterion_name=criterion,
