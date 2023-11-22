@@ -7,7 +7,6 @@ from tqdm import tqdm
 import pickle
 import matplotlib as mpl
 import numpy as np
-import scipy
 from pathlib import Path
 import re
 
@@ -256,3 +255,17 @@ def copy_keypoint(original_keypoint: cv2.KeyPoint):
 	copied_keypoint.octave = original_keypoint.octave
 	copied_keypoint.class_id = original_keypoint.class_id
 	return copied_keypoint
+
+
+if __name__ == '__main__':
+	exp_date = '19_10_2023'
+	exp_name = '[F=7.886_A=M_PIdiv5.401_K=0.03]'
+	base_path = fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}"
+	plot_angles(
+		angles=np.load(f"{base_path}\\angles.npy")[:, 3000:3800],
+	)
+	plot_trajectories(
+		trajectory_3d=np.load(fr"{base_path}\trajectories.npy")[:, 3000:3800, :]
+		# center_of_mass_point=np.vstack(
+		# 	pd.read_pickle(fr"{base_path}\merged_data_preprocessed_and_encoded.pkl")['center_of_mass'])
+	)
