@@ -338,6 +338,13 @@ def save_np_to_matlab_mat(
 	scipy.io.savemat(save_path, {key_name if key_name else 'data': data})
 
 
+def mpl():
+	""" boilerplate code for matplotlib importing and tkagg usage """
+	import matplotlib
+	import matplotlib.pyplot as plt
+	matplotlib.use('TkAgg')
+
+
 def update_json(yaml_path: str, new_data):
 	""" updates a given yaml file with new data dictionary """
 	if os.path.exists(yaml_path):
@@ -427,7 +434,8 @@ if __name__ == '__main__':
 	exp_date = '19_10_2023'
 	exp_name = '[F=7.886_A=M_PIdiv5.401_K=0.03]'
 	filename = 'merged_data_preprocessed_and_encoded.pkl'
+	df = pd.read_pickle(fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}\{filename}")
 	plot_df_with_plotly(
-		df=pd.read_pickle(fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}\{filename}"),
+		df=df,
 		ignore_cols=['p0', 'p1', 'p2', 'center_of_mass']
 	)
