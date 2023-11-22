@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 def read_forces_csv(
 		csv_filename: str,
 		header_row_count: int,
-		tare: list[str]
+		tare: list[str] | None = None
 ) -> tuple[pd.DataFrame, dict[str, list]]:
 	"""
 	reads the csv_filename and extracts the header information alongside a forces dataframe
@@ -47,8 +47,23 @@ def plot_forces(
 	if convert_to_time:
 		df.index = np.arange(0, len(df)) / sample_rate
 	mpl.use("TkAgg")
-	df.plot(title=f"Forces [{sample_rate} sample rate], [{start_time}]",
-			xlabel="Time [sec]" if convert_to_time else f"Sample [#]",
-			grid=True)
+	df.plot(
+		title=f"Forces [{sample_rate} sample rate], [{start_time}]",
+		xlabel="Time [sec]" if convert_to_time else f"Sample [#]",
+		grid=True
+	)
 	plt.show()
 
+
+if __name__ == '__main__':
+	from Utilities import utils
+	import os
+	tot = pd.DataFrame()
+	mainpath = r'G:\My Drive\Master\Lab\Thesis\Forces\experiments\08_11_2023'
+	for f in os.listdir(mainpath):
+		df, head = read_forces_csv(os.path.join(mainpath, f), 21)
+		df['+'.join(df.columns)] = df[df.columns].sum(axis=1)
+		df.columns = [f"{col} ({f.split('.')[0]})" for col in df.columns]
+		tot = pd.concat([tot, df], axis=1)
+	utils.plot_df_with_plotly(tot)
+z=1
