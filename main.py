@@ -12,7 +12,7 @@ from DataHandler import encoders, preprocess
 
 if __name__ == '__main__':
 
-	exp_date = '19_10_2023'
+	exp_date = '23_10_2023'
 	assert (
 			os.path.exists(rf"Camera\calibrations\{exp_date}\cameraMatrix1.mat") and
 			os.path.exists(rf"Camera\calibrations\{exp_date}\cameraMatrix2.mat")
@@ -26,9 +26,9 @@ if __name__ == '__main__':
 	human_verification_runtime = False
 	variable_length_experiments = True
 	add_manual_crop = False
-	show_wing_tracker = False
-	show_angle_results = False
-	show_force_results = False
+	show_wing_tracker = True
+	show_angle_results = True
+	show_force_results = True
 	show_start_heuristics = True
 
 	camera_n_samples = 10_000
