@@ -258,14 +258,14 @@ def copy_keypoint(original_keypoint: cv2.KeyPoint):
 
 
 if __name__ == '__main__':
-	exp_date = '19_10_2023'
-	exp_name = '[F=7.886_A=M_PIdiv5.401_K=0.03]'
+	exp_date = '23_10_2023'
+	exp_name = '[F=7.501_A=M_PIdiv5.943_K=0.645]'
 	base_path = fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}"
 	plot_angles(
-		angles=np.load(f"{base_path}\\angles.npy")[:, 3000:3800],
+		angles=np.load(f"{base_path}\\angles.npy")[:, 3000:8000],
 	)
 	plot_trajectories(
-		trajectory_3d=np.load(fr"{base_path}\trajectories.npy")[:, 3000:3800, :]
+		trajectory_3d=np.load(fr"{base_path}\trajectories.npy")[:, 3000:8000, :],wing_plane_jmp=300
 		# center_of_mass_point=np.vstack(
 		# 	pd.read_pickle(fr"{base_path}\merged_data_preprocessed_and_encoded.pkl")['center_of_mass'])
 	)

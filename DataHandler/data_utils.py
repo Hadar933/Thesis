@@ -5,7 +5,6 @@ import matplotlib
 import numpy as np
 
 
-
 def from_01_to_ab(x: np.ndarray, a: float, b: float) -> np.ndarray:
 	"""
 	assumes the data x  is in [0,1], and casts it to [a,b]
@@ -21,7 +20,7 @@ def latin_hyper_cube_sampling(
 		n_samples: int,
 		dim: int = 3,
 		show_plot: bool = True,
-		save_to_csv: bool = True,
+		save_to_csv: bool = False,
 		orthogonal_sampling: bool = False,
 		seed: int = 42
 ) -> np.ndarray:
@@ -51,7 +50,7 @@ def latin_hyper_cube_sampling(
 		fig = plt.figure()
 		lhc_ax = fig.add_subplot(111, projection='3d')
 		lhc_ax.scatter(lhc_data[:, 0], lhc_data[:, 1], lhc_data[:, 2])
-		lhc_ax.set_title(f'Latin Hyper Cube Sampler ({len(lhc_data)} samples)')
+		lhc_ax.set_title(r'LHC with 160 samples, $f\in [5,20], K\in [0.01,1], A\in[1/6,1/3.5]$')
 		lhc_ax.set_xlabel(r'$A$')
 		lhc_ax.set_ylabel(r'$K$')
 		lhc_ax.set_zlabel(r'$f$')
@@ -65,5 +64,5 @@ def latin_hyper_cube_sampling(
 if __name__ == '__main__':
 	fa, fb = 5.0, 20.0
 	ka, kb = 0.01, 1.0
-	Aa, Ab = 3.5, 6
-	samples = latin_hyper_cube_sampling(200, 3)
+	Ab, Aa = 1/3.5, 1/6
+	samples = latin_hyper_cube_sampling(160, 3)

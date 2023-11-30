@@ -41,11 +41,12 @@ if __name__ == '__main__':
 	seq2seq_name = 'Seq2Seq'
 	mlp_name = 'MLP'
 	rnn_name = 'RNN'
+	ltsf_linear_name = 'LTSF\\Linear'
 
 	for emb_size in [1]:
 		for hid_size in [1]:
 			for nlayers in [1]:
-				exp_name = f"test_var_len_data"
+				exp_name = f""
 				seq2seq_args = dict(
 					input_dim=input_dim,
 					target_lag=target_win,
@@ -61,7 +62,7 @@ if __name__ == '__main__':
 					input_size=input_size,
 					history_size=feature_win,
 					output_size=output_size,
-					hidden_dims_list=[30, 50, 30]
+					hidden_dims_list=[1]
 				)
 				rnn_args = dict(
 					type='gru',
@@ -72,6 +73,12 @@ if __name__ == '__main__':
 					dropout=0.05,
 					bidirectional=False
 				)
+				ltsf_linear_args = dict(
+					seq_len=feature_win,
+					pred_len=target_win,
+					enc_in=input_size,
+					individual=False
+				)
 				trainer = Trainer(
 					features_path=forces_path,
 					targets_path=kinematics_path,
@@ -81,8 +88,8 @@ if __name__ == '__main__':
 					target_win=target_win,
 					intersect=intersect,
 					batch_size=batch_size,
-					model_class_name=seq2seq_name,
-					model_args=seq2seq_args,
+					model_class_name=ltsf_linear_name,
+					model_args=ltsf_linear_args,
 					exp_name=exp_name,
 					optimizer_name=optimizer,
 					criterion_name=criterion,
