@@ -356,7 +356,7 @@ def update_json(yaml_path: str, new_data):
 		json.dump({**old_data, **new_data}, f, ensure_ascii=False, indent=4)
 
 
-def format_df_torch_entries(
+def _format_df_torch_entries(
 		df: pd.DataFrame
 ) -> pd.DataFrame:
 	""" takes in a df where every entry is a torch tensor and returns a new df with unpacked tensor values as cols """
@@ -431,11 +431,12 @@ def remove_and_trim_datasets(
 
 
 if __name__ == '__main__':
-	exp_date = '19_10_2023'
-	exp_name = '[F=7.886_A=M_PIdiv5.401_K=0.03]'
-	filename = 'merged_data_preprocessed_and_encoded.pkl'
-	df = pd.read_pickle(fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}\{filename}")
-	plot_df_with_plotly(
-		df=df,
-		ignore_cols=['p0', 'p1', 'p2', 'center_of_mass']
-	)
+	# exp_date = '19_10_2023'
+	# exp_name = '[F=7.886_A=M_PIdiv5.401_K=0.03]'
+	# filename = 'merged_data_preprocessed_and_encoded.pkl'
+	# df = pd.read_pickle(fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}\{filename}")
+	# plot_df_with_plotly(
+	# 	df=df,
+	# 	ignore_cols=['p0', 'p1', 'p2', 'center_of_mass']
+	# )
+	results_plotter(r"E:\Hadar\experiments\23_10_2023\kinematics.pt",r"E:\Hadar\experiments\23_10_2023\forces.pt")
