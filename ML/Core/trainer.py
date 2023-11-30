@@ -1,21 +1,20 @@
 import importlib.util
-import inspect
 import json
-from datetime import datetime
-from typing import Literal
-
-from ML.Core.custom_loss import LossFactory
-from ML.Utilities import utils
-import pandas as pd
-from torch.utils.tensorboard import SummaryWriter
 import psutil
 import torch
-from tqdm import tqdm
 import os
-from ML.Utilities.normalizer import NormalizerFactory
 import torchinfo
-import numpy as np
 import random
+
+import numpy as np
+import pandas as pd
+
+from datetime import datetime
+from ML.Core.custom_loss import LossFactory
+from Utilities import utils
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
+from ML.Core.normalizer import NormalizerFactory
 
 
 class Trainer:
@@ -53,7 +52,7 @@ class Trainer:
 		self._set_seed(seed)
 
 		self.init_args = {key: val for key, val in locals().copy().items() if key != 'self'}
-		# TODO: bug with undesired saving of early_stopping
+		# TODO: bug with undesired saving of early_stopping, best_val_loss, best_model_path
 		for key, val in self.init_args.items():
 			setattr(self, key, val)
 
@@ -256,7 +255,7 @@ class Trainer:
 		all_loaders = self.data_dict[dataset]['all_dataloaders']
 		self.model.load_state_dict(torch.load(self.best_model_path, map_location=self.device))
 		self.model.train(False)
-		all_preds = pd.DataFrame()
+		merged_df = pd.DataFrame()
 		with torch.no_grad():
 			for j, data_loader in enumerate(all_loaders):
 				curr_preds, curr_trues = [], []
@@ -266,16 +265,18 @@ class Trainer:
 					pred_i = self.targets_normalizer.inverse_transform(pred_i)
 					curr_preds.append(pred_i.squeeze())
 					curr_trues.append(true_i.squeeze())
-				all_preds[f"pred_{j}"] = curr_preds
-				all_preds[f"true_{j}"] = curr_trues
-		all_preds = utils.format_df_torch_entries(all_preds)
-		return all_preds
+				merged_df = pd.merge(merged_df, pd.DataFrame(curr_preds).add_prefix(f'[pred] [#{j}] '),
+									 how='outer', left_index=True, right_index=True)
+				merged_df = pd.merge(merged_df, pd.DataFrame(curr_trues).add_prefix(f'[true] [#{j}] '),
+									 how='outer', left_index=True, right_index=True)
+		merged_df = merged_df.applymap(lambda x: x.item() if isinstance(x, torch.Tensor) else x)
+		return merged_df
 
 	@classmethod
 	def from_model_dirname(cls, model_dirname):
 		"""
 		Initializes a trainer instance using the trainer_info defined with the model provided in model_dirname.
-		This way, a trained model can be loaded with the trainer that was specifically instantiated for it,
+		This way, a trained model can be loaded with the trainer that was specifically instantiated when it was trained.
 		:param model_dirname: path to the dirname containing the model.pt file and trainer_info.yaml file
 		:return: the trainer object
 		"""
