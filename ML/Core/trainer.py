@@ -266,7 +266,7 @@ class Trainer:
                     curr_inputs = pd.DataFrame(
                         self.features_normalizer.inverse_transform(
                             self.data_dict[dataset]['all_datasets'][j].normalized_features.squeeze(0)
-                        ), columns=['F1', 'F2', 'F3', 'F4']
+                        ), columns=['Fx', 'Fy', 'Fz', 'My', 'Mz'] # TODO: convert back to f1,f2,f3,f4
                     )
                     merged_df = merge_helper(curr_inputs, 'input', j)
                 curr_preds, curr_trues = [], []

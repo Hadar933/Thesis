@@ -1,4 +1,5 @@
 import os.path
+import pickle
 
 import dash
 import torch
@@ -453,7 +454,7 @@ def plot_model_predictions(
     fig, axs = plt.subplots(2, num_dataframes, sharex=True, sharey='row', figsize=(len(pred_dict) * num_dataframes, 10))
 
     # Define a color palette for forces and pred-true pairs
-    force_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
+    force_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:brown']
     pred_true_colors = ['tab:purple', 'tab:cyan', 'tab:pink']
 
     for idx, (df_name, df) in enumerate(pred_dict.items()):
@@ -471,10 +472,10 @@ def plot_model_predictions(
         predictions = df[predictions_cols].values
 
         # Plotting inputs in the top row
-        for i in range(inputs.shape[1]):
-            axs[0, idx].plot(inputs[:, i], label=f'Force {i + 1}', color=force_colors[i])
+        for i,label in zip(range(inputs.shape[1]),['Fx','Fy','Fz','My','Mz']):
+            axs[0, idx].plot(inputs[:, i], label=label, color=force_colors[i])
 
-        axs[0, idx].set_ylabel('Force Values [N]')
+        axs[0, idx].set_ylabel('Force and Torque Values [N] or [Nm]')
 
         # Plotting targets and predictions in the bottom row
         labels = [r"$\theta$", r"$\phi$", r"$\psi$"]
@@ -519,4 +520,6 @@ if __name__ == '__main__':
     # 	df=df,
     # 	ignore_cols=['p0', 'p1', 'p2', 'center_of_mass']
     # )
-    results_plotter(r"E:\Hadar\experiments\23_10_2023\kinematics.pt", r"E:\Hadar\experiments\23_10_2023\forces.pt")
+    with open('/home/hadar/Thesis/ML/tstpreds_prssm.pkl', 'rb') as handle:
+        tstpreds = pickle.load(handle)
+    plot_model_predictions(tstpreds,[0,1,2,3])

@@ -1,4 +1,5 @@
 import os
+import pickle
 
 from ML.Core.trainer import Trainer
 import torch
@@ -6,15 +7,15 @@ import torch
 from Utilities import utils
 
 if __name__ == '__main__':
-
-    exp_time = '22_11_2023'
+    exp_time = '10_10_2023'
+    # exp_time = '22_11_2023'
     train_percent = 0.85
     val_percent = 0.1
     feature_win = 256
     target_win = 1
     intersect = 0
     batch_size = 512
-    n_epochs = 2
+    n_epochs = 20
     seed = 3407
     criterion = 'L1Loss'
     regularization_factor = 10
@@ -29,8 +30,11 @@ if __name__ == '__main__':
 
     use_hard_drive = False
     parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
-    forces_path = os.path.join(parent_dirname, exp_time, 'f19+f23_list_clean.pt')
-    kinematics_path = os.path.join(parent_dirname, exp_time, 'k19+k23_list_clean.pt')
+    # forces_path = os.path.join(parent_dirname, exp_time, 'f19+f23_list_clean.pt')
+    # kinematics_path = os.path.join(parent_dirname, exp_time, 'k19+k23_list_clean.pt')
+
+    forces_path = os.path.join(parent_dirname, exp_time, 'forces_prssm.pt')
+    kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics_prssm.pt')
 
     forces, kinematics = torch.load(forces_path), torch.load(kinematics_path)
     if isinstance(forces, list) and isinstance(kinematics, list):
@@ -109,4 +113,8 @@ if __name__ == '__main__':
 
     valpreds = trainer.predict('val', True)
     testpreds = trainer.predict('test', True)
-    utils.plot_df_with_plotly(testpreds)
+
+    with open('valpreds_prssm.pkl', 'wb') as handle:
+        pickle.dump(valpreds, handle)
+    with open('tstpreds_prssm.pkl', 'wb') as handle:
+        pickle.dump(testpreds, handle)
