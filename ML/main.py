@@ -107,6 +107,6 @@ if __name__ == '__main__':
                 )
                 trainer.fit()
 
-    valpreds = trainer.predict('val',True)
-    testpreds = trainer.predict('test',True)
+    valpreds = trainer.predict('val', True)
+    testpreds = trainer.predict('test', True)
     utils.plot_df_with_plotly(testpreds)
