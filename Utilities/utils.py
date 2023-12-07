@@ -431,6 +431,85 @@ def remove_and_trim_datasets(
         torch.save(kinematics_to_keep, kinematics_path.replace('.pt', '_cleaned.pt'))
 
 
+def plot_model_predictions(
+        pred_dict: dict[int, pd.DataFrame],
+        datasets: Optional[list[int]] = None,
+        trim: Optional[int] = None
+) -> None:
+    """
+    takes in a dictionary of datasets predictions and plots them side by side
+    :param pred_dict: dictionary where each value is a df with inputs, true labels and predictions.
+                      These are generated using the `.predict` method of a `Trainer` instance
+    :param datasets: a list of dataset keys to plot (the dictionary will be trimmed accordingly)
+    :param trim: an integer that slices each dataframe (all rows > trim are dropped)
+    """
+    if datasets is not None:
+        # Filter the dictionary based on the provided list of keys
+        pred_dict = {key: value for key, value in pred_dict.items() if key in datasets}
+
+    num_dataframes = len(pred_dict)
+
+    # Adjusting the width to make plots slimmer
+    fig, axs = plt.subplots(2, num_dataframes, sharex=True, sharey='row', figsize=(len(pred_dict) * num_dataframes, 10))
+
+    # Define a color palette for forces and pred-true pairs
+    force_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
+    pred_true_colors = ['tab:purple', 'tab:cyan', 'tab:pink']
+
+    for idx, (df_name, df) in enumerate(pred_dict.items()):
+        # Trim the rows of each dataframe if trim is specified
+        if trim is not None:
+            df = df.iloc[:trim, :]
+
+        # Extracting relevant columns dynamically
+        inputs_cols = [col for col in df.columns if 'input' in col.lower()]
+        true_labels_cols = [col for col in df.columns if 'true' in col.lower()]
+        predictions_cols = [col for col in df.columns if 'pred' in col.lower()]
+
+        inputs = df[inputs_cols].values
+        true_labels = df[true_labels_cols].values
+        predictions = df[predictions_cols].values
+
+        # Plotting inputs in the top row
+        for i in range(inputs.shape[1]):
+            axs[0, idx].plot(inputs[:, i], label=f'Force {i + 1}', color=force_colors[i])
+
+        axs[0, idx].set_ylabel('Force Values [N]')
+
+        # Plotting targets and predictions in the bottom row
+        labels = [r"$\theta$", r"$\phi$", r"$\psi$"]
+        for i in range(true_labels.shape[1]):
+            axs[1, idx].plot(true_labels[:, i], label=f'True {labels[i]}', linestyle='dashed',
+                             color=pred_true_colors[i])
+            axs[1, idx].plot(predictions[:, i], label=f'Pred {labels[i]}', linestyle='solid', color=pred_true_colors[i])
+
+        axs[1, idx].set_ylabel('Target/Prediction Values [rad]')
+
+    # Add global title
+    fig.suptitle(
+        f"Comparative Analysis of Forces, Kinematics, and Predictions across Multiple Datasets (Trimmed to {trim} samples)",
+        fontsize=16)
+
+    # Add global x-axis title
+    fig.text(0.5, 0.04, 'Frames', ha='center')
+
+    # Adjust layout to prevent clipping of labels
+    plt.tight_layout(rect=[0, 0.06, 1, 0.99])
+
+    # Add grid
+    for ax in axs.flatten():
+        ax.grid(True)
+
+    # Consolidate legends for both rows on the side
+    handles, labels = axs[0, 0].get_legend_handles_labels()
+    handles.extend(axs[1, 0].get_legend_handles_labels()[0])
+    labels.extend(axs[1, 0].get_legend_handles_labels()[1])
+
+    fig.legend(handles, labels, loc='lower center', ncol=len(df.columns))
+
+    plt.show()
+
+
 if __name__ == '__main__':
     # exp_date = '19_10_2023'
     # exp_name = '[F=7.886_A=M_PIdiv5.401_K=0.03]'
