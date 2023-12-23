@@ -46,13 +46,12 @@ if __name__ == '__main__':
 	seq2seq_name = 'Seq2Seq'
 	mlp_name = 'MLP'
 	rnn_name = 'RNN'
-	ltsf_linear_name = 'LTSF\\Linear'
-	ltsf_transformer_name = 'LTSF\\Transformer'
+	ltsf_linear_name = os.path.join('LTSF','Linear')
+	ltsf_transformer_name = os.path.join('LTSF','Transformer')
 
 	emb_size = 10
 	hid_size = 10
 	nlayers = 1
-	exp_name = f""
 	seq2seq_args = dict(
 		input_dim=input_dim,
 		target_lag=target_win,
@@ -116,7 +115,7 @@ if __name__ == '__main__':
 			batch_size=batch_size,
 			model_class_name=mname,
 			model_args=margs,
-			exp_name=exp_name,
+			exp_name='',
 			optimizer_name=optimizer,
 			criterion_name=criterion,
 			patience=patience,

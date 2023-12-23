@@ -133,7 +133,7 @@ class Trainer:
 
 	def _construct_model(self):
 		""" uses the provided model name and model args and returns a suitable model object """
-		file_path = os.path.join('Zoo', f'{self.model_class_name.lower()}.py')
+		file_path = os.path.join('Zoo', f'{self.model_class_name}.py')
 		if not os.path.exists(file_path):
 			raise FileNotFoundError(f"The model file '{file_path}' does not exist")
 		# importing the relevant model dynamically:
@@ -145,8 +145,8 @@ class Trainer:
 		model = model_class(**self.model_args)
 		if self.model_class_name.lower() == 'mlp':
 			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win * self.features[0].shape[-1]))
-		else:
-			torchinfo.summary(model, input_size=(self.batch_size, self.feature_win, self.features[0].shape[-1]))
+		# else:
+		# 	torchinfo.summary(model, input_size=(self.batch_size, self.feature_win, self.features[0].shape[-1]))
 		return model.to(self.device)
 
 	def _create_model_dir(self):
