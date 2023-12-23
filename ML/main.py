@@ -43,9 +43,9 @@ if __name__ == '__main__':
 		input_size, output_size = forces.shape[-1], kinematics.shape[-1]
 	input_dim = (batch_size, feature_win, input_size)
 
-	seq2seq_name = 'Seq2Seq'
-	mlp_name = 'MLP'
-	rnn_name = 'RNN'
+	seq2seq_name = 'Seq2seq'
+	mlp_name = 'Mlp'
+	rnn_name = 'Rnn'
 	ltsf_linear_name = os.path.join('LTSF','Linear')
 	ltsf_transformer_name = os.path.join('LTSF','Transformer')
 
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 		d_model=hid_size,
 		dropout=0.05,
 		dec_in=output_size,
-		embed_type=3,  # without temporal encoding
+		embed_type=4,  # without temporal or pos encoding
 		factor=1,
 		d_ff=hid_size,
 		e_layers=nlayers,
@@ -102,8 +102,8 @@ if __name__ == '__main__':
 		d_layers=1,
 		c_out=output_size
 	)
-	for margs, mname in zip([ltsf_transformer_args, seq2seq_args, mlp_args],
-							[ltsf_transformer_name, seq2seq_name, mlp_name]):
+	for margs, mname in zip([ltsf_transformer_args, seq2seq_args],
+							[ltsf_transformer_name, seq2seq_name]):
 		trainer = Trainer(
 			features_path=forces_path,
 			targets_path=kinematics_path,

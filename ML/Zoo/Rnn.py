@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 
-class RNN(nn.Module):
+class Rnn(nn.Module):
     def __init__(self, type: Literal['lstm', 'gru'],
                  input_size: int, output_size: int,
                  hidden_dim: int = 16, num_layers: int = 1, dropout: float = 0.0, bidirectional: bool = False):
@@ -18,7 +18,7 @@ class RNN(nn.Module):
         :param dropout: dropout percentage in [0,1], to be applied between RNN blocks (relevant for num_layers > 1)
         :param bidirectional: iff True
         """
-        super(RNN, self).__init__()
+        super(Rnn, self).__init__()
         self.name = type.upper()
         self.input_size = input_size
         self.hidden_dim = hidden_dim

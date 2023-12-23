@@ -140,7 +140,7 @@ class Decoder(nn.Module):
 		return prediction, dec_hidden.squeeze(0)
 
 
-class Seq2Seq(nn.Module):
+class Seq2seq(nn.Module):
 	def __init__(
 			self,
 			input_dim: Tuple,
@@ -165,7 +165,7 @@ class Seq2Seq(nn.Module):
 		@param dec_hidden_size: the hidden size for the decoder
 		@param dec_output_size: the output size for the decoder
 		"""
-		super(Seq2Seq, self).__init__()
+		super(Seq2seq, self).__init__()
 		self.input_dim = input_dim
 		self.batch_size, self.feature_lags, self.input_size = input_dim
 		self.target_lag = target_lag

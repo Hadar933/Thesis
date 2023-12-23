@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 
-class MLP(nn.Module):
+class Mlp(nn.Module):
 	def __init__(
 			self,
 			input_size: int,
@@ -19,7 +19,7 @@ class MLP(nn.Module):
 		:param hidden_dims_list: the dimensions of the hidden layers only (without input and output)
 		:param output_size: output dim for multi-target prediction
 		"""
-		super(MLP, self).__init__()
+		super(Mlp, self).__init__()
 		self.input_size = input_size
 		self.history_size = history_size
 		self.output_size = output_size

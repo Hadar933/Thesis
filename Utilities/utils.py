@@ -20,7 +20,7 @@ from tqdm import tqdm
 from typing import Literal, Optional
 
 from ML.Core.datasets import FixedLenMultiTimeSeries, VariableLenMultiTimeSeries
-from ML.Zoo.seq2seq import Seq2Seq
+from ML.Zoo.Seq2seq import Seq2seq
 
 TIME_FORMAT = '%Y-%m-%d_%H-%M-%S'
 
@@ -117,7 +117,7 @@ def plot_dict_with_plotly(
 
 
 def visualize_attention(
-        model: Seq2Seq,
+        model: Seq2seq,
         test_loader
 ) -> list[np.ndarray]:
     """
