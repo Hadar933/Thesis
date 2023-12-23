@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
-from ML.Zoo.TFT.gated_residual_network import GRN
+import LTSFLinear.layers.Embed as Embed
 
 
 class Encoder(nn.Module):
@@ -129,8 +129,10 @@ class Decoder(nn.Module):
 		"""
 		embedded = self.embedding(dec_input).unsqueeze(1)
 		attn_weights = self.attention(dec_hidden, enc_outputs).unsqueeze(1)  # [batch size,1, seq_size]
-		weighted_sum_of_enc_outputs = torch.bmm(attn_weights, enc_outputs)  # [batch size, 1, enc hidden dim * num directions]
-		rnn_input = torch.cat((embedded, weighted_sum_of_enc_outputs), dim=2)  # [batch size, 1,enc hid dim * dirs + emb size]
+		weighted_sum_of_enc_outputs = torch.bmm(attn_weights,
+												enc_outputs)  # [batch size, 1, enc hidden dim * num directions]
+		rnn_input = torch.cat((embedded, weighted_sum_of_enc_outputs),
+							  dim=2)  # [batch size, 1,enc hid dim * dirs + emb size]
 		dec_output, dec_hidden = self.rnn(rnn_input, dec_hidden.unsqueeze(1).permute(1, 0, 2))
 		# output = [batch size, 1, dec hidden size * n directions] = [batch_size, 1, dec hidden size]
 		# hidden = [n layers * n directions, batch size, dec hid dim] = [1, batch_size, dec hidden size]
@@ -177,7 +179,7 @@ class Seq2seq(nn.Module):
 		self.dec_hidden_size = dec_hidden_size
 		self.dec_output_size = dec_output_size
 		self.cast_input_to_dec_output = nn.Linear(input_dim[-1], dec_output_size)
-
+		self.pos_emb = Embed.PositionalEmbedding(d_model=self.input_size)
 		self.encoder = Encoder(
 			self.input_size,
 			enc_embedding_size,
@@ -223,6 +225,7 @@ class Seq2seq(nn.Module):
 		@return:
 		"""
 		outputs = []
+		x = x + self.pos_emb(x)
 		encoder_outputs, hidden = self.encoder(x)
 		input = self.cast_input_to_dec_output(x[:, -1, :])
 		for t in range(self.target_lag):
@@ -243,10 +246,10 @@ if __name__ == '__main__':
 	dec_output_size = 2
 	batch_size = 2048
 	feature_lag = 480
-	input_size = 7
+	input_size = 4
 	input_dim = batch_size, feature_lag, input_size
 	xx = torch.randn(batch_size, feature_lag, input_size)
-	s2s = Seq2Seq(input_dim, target_lag, enc_embedding_size, enc_hidden_size, enc_num_layers, enc_bidirectional,
+	s2s = Seq2seq(input_dim, target_lag, enc_embedding_size, enc_hidden_size, enc_num_layers, enc_bidirectional,
 				  dec_embedding_size, dec_hidden_size, dec_output_size)
 	y = s2s(xx)
 	print(y.shape)

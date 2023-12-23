@@ -46,8 +46,8 @@ if __name__ == '__main__':
 	seq2seq_name = 'Seq2seq'
 	mlp_name = 'Mlp'
 	rnn_name = 'Rnn'
-	ltsf_linear_name = os.path.join('LTSF','Linear')
-	ltsf_transformer_name = os.path.join('LTSF','Transformer')
+	ltsf_linear_name = os.path.join('LTSF', 'Linear')
+	ltsf_transformer_name = os.path.join('LTSF', 'Transformer')
 
 	emb_size = 10
 	hid_size = 10
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 		d_model=hid_size,
 		dropout=0.05,
 		dec_in=output_size,
-		embed_type=4,  # without temporal or pos encoding
+		embed_type=3,
 		factor=1,
 		d_ff=hid_size,
 		e_layers=nlayers,
