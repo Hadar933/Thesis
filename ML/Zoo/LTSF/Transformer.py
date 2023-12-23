@@ -108,7 +108,7 @@ class Transformer(nn.Module):
 
 	def forward(self, x_enc,
 				x_mark_enc=None, x_mark_dec=None, enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
-		x_dec = torch.zeros(x_enc.shape[0], self.pred_len, self.c_out)
+		x_dec = torch.zeros(x_enc.shape[0], self.pred_len, self.c_out).to(x_enc.device)
 		# x_dec = torch.zeros_like(batch_y[:, -self.pred_len:, :]).float()
 		# x_dec = torch.cat([batch_y[:, :self.args.label_len, :], x_dec], dim=1).float().to(self.device)
 
