@@ -47,7 +47,9 @@ if __name__ == '__main__':
     mlp_name = 'Mlp'
     rnn_name = 'Rnn'
     ltsf_linear_name = os.path.join('LTSF', 'Linear')
-    ltsf_informer_name = os.path.join('LTSF', 'Transformer')
+    ltsf_informer_name = os.path.join('LTSF', 'Informer')
+    ltsf_transformer_name = os.path.join('LTSF', 'Transformer')
+
 
     emb_size = 5
     hid_size = 30
@@ -100,16 +102,21 @@ if __name__ == '__main__':
         activation='gelu',
         n_heads=2,
         d_layers=1,
-        c_out=output_size
+        c_out=output_size,
+        distil=True
     )
+    ltsf_transformer_args = {key: value for key, value in ltsf_informer_args.items() if key != 'distil'}
+
     for margs, mname in zip(
             [
                 ltsf_informer_args,
+                ltsf_transformer_args,
                 seq2seq_args,
                 ltsf_linear_args
             ],
             [
                 ltsf_informer_name,
+                ltsf_transformer_name,
                 seq2seq_name,
                 ltsf_linear_name
             ]

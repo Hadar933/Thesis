@@ -19,14 +19,14 @@ from LTSFLinear.layers.Embed import (
 )
 
 
-class Model(nn.Module):
+class Informer(nn.Module):
 	"""
 	Informer with Propspare attention in O(LlogL) complexity
 	"""
 
 	def __init__(self, pred_len, label_len, output_attention, enc_in, d_model, dropout, dec_in, embed_type, factor,
-				 d_ff, e_layers, activation, n_heads, d_layers, c_out, embed=None, freq=None):
-		super(Model, self).__init__()
+				 d_ff, e_layers, activation, n_heads, d_layers, c_out,distil, embed=None, freq=None):
+		super(Informer, self).__init__()
 		self.pred_len = pred_len
 		self.label_len = label_len
 		self.output_attention = output_attention
@@ -44,7 +44,7 @@ class Model(nn.Module):
 		self.n_heads = n_heads
 		self.d_layers = d_layers
 		self.c_out = c_out
-
+		self.distil=distil
 		# Embedding
 		if self.embed_type == 0:
 			self.enc_embedding = DataEmbedding(self.enc_in, self.d_model, self.embed, self.freq, self.dropout)
