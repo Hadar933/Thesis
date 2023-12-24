@@ -47,7 +47,7 @@ if __name__ == '__main__':
     mlp_name = 'Mlp'
     rnn_name = 'Rnn'
     ltsf_linear_name = os.path.join('LTSF', 'Linear')
-    ltsf_transformer_name = os.path.join('LTSF', 'Transformer')
+    ltsf_informer_name = os.path.join('LTSF', 'Transformer')
 
     emb_size = 5
     hid_size = 30
@@ -85,7 +85,7 @@ if __name__ == '__main__':
         individual=False,
         output_size=output_size
     )
-    ltsf_transformer_args = dict(
+    ltsf_informer_args = dict(
         pred_len=target_win,
         label_len=0,
         output_attention=False,
@@ -104,12 +104,12 @@ if __name__ == '__main__':
     )
     for margs, mname in zip(
             [
-                ltsf_transformer_args,
+                ltsf_informer_args,
                 seq2seq_args,
                 ltsf_linear_args
             ],
             [
-                ltsf_transformer_name,
+                ltsf_informer_name,
                 seq2seq_name,
                 ltsf_linear_name
             ]
