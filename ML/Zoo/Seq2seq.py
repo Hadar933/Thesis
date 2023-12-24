@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
+import LTSFLinear.layers.Embed as Embed
 
-from ML.Zoo.TFT.gated_residual_network import GRN
 
 
 class Encoder(nn.Module):
@@ -177,6 +177,7 @@ class Seq2seq(nn.Module):
 		self.dec_hidden_size = dec_hidden_size
 		self.dec_output_size = dec_output_size
 		self.cast_input_to_dec_output = nn.Linear(input_dim[-1], dec_output_size)
+		self.pos_emb = Embed.PositionalEmbedding(d_model=self.input_size)
 
 		self.encoder = Encoder(
 			self.input_size,
@@ -223,6 +224,7 @@ class Seq2seq(nn.Module):
 		@return:
 		"""
 		outputs = []
+		x = x + self.pos_emb(x)
 		encoder_outputs, hidden = self.encoder(x)
 		input = self.cast_input_to_dec_output(x[:, -1, :])
 		for t in range(self.target_lag):
