@@ -52,29 +52,98 @@ if __name__ == '__main__':
     #                           e_layers=nlayers, activation='gelu', n_heads=2, d_layers=1, c_out=output_size,
     #                           distil=True)
     # ltsf_transformer_args = {key: value for key, value in ltsf_informer_args.items() if key != 'distil'}
+    model_args_key = 'model_args'
+    feature_lags = [128, 256, 512]
+    batch_sizes = [512]
+    target_lags = [16, 32, 64, 128]
+    embedding_sizes = [2, 4, 8, 16]
+    hidden_sizes = [8, 16, 32, 64]
+    label_lens = [0]
+    layers = [1]
+    bidirs = [True]
+    dropouts = [0.05]
+    activations = ['gelu']
+    output_attentions = [False]
+    embed_types = [3]
+    factors = [1]
+    n_heads = [2]
 
     seq2seq_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(
-            feature_lag=[128, 256, 512],
-            batch_size=[512]
+            feature_lag=feature_lags,
+            batch_size=batch_sizes
         ),
         model_args=dict(
-            target_lag=[16, 32, 64, 128],
-            enc_embedding_size=[2, 4, 8, 16],
-            enc_hidden_size=[8, 16, 32, 64],
-            enc_num_layers=[1],
-            enc_bidirectional=[True],
-            output_size=[output_size]
+            target_lag=target_lags,
+            enc_embedding_size=embedding_sizes,
+            enc_hidden_size=hidden_sizes,
+            enc_num_layers=layers,
+            enc_bidirectional=bidirs,
+            dec_output_size=[output_size]
         ),
         model_shared_pairs={
             'dec_hidden_size': 'enc_hidden_size',
             'dec_embedding_size': 'enc_embedding_size'
-        }
+        },
+        model_args_key=model_args_key
     )
-    for hyperparams in seq2seq_params:
+    transformer_params = ml_utils.generate_hyperparam_combinations(
+        global_args=dict(
+            feature_lag=feature_lags,
+            batch_size=batch_sizes
+        ),
+        model_args=dict(
+            pred_len=target_lags,
+            label_len=label_lens,
+            output_attention=output_attentions,
+            enc_in=[input_size],
+            d_model=hidden_sizes,
+            dropout=dropouts,
+            dec_in=[output_size],
+            embed_type=embed_types,  # no time encoding
+            factor=factors,
+            e_layers=[1,2],
+            activation=activations,
+            n_heads=n_heads,
+            d_layers=[1,2],
+            c_out=[output_size]
+        ),
+        model_shared_pairs={
+            'd_ff': 'd_model',
+        },
+        model_args_key=model_args_key
+    )
+    informer_params = ml_utils.generate_hyperparam_combinations(
+        global_args=dict(
+            feature_lag=feature_lags,
+            batch_size=batch_sizes
+        ),
+        model_args=dict(
+            pred_len=target_lags,
+            label_len=label_lens,
+            output_attention=output_attentions,
+            enc_in=[input_size],
+            d_model=hidden_sizes,
+            dropout=dropouts,
+            dec_in=[output_size],
+            embed_type=embed_types,  # no time encoding
+            factor=factors,
+            e_layers=[1, 2],
+            activation=activations,
+            n_heads=n_heads,
+            d_layers=[1, 2],
+            c_out=[output_size],
+            distil=[True]
+        ),
+        model_shared_pairs={
+            'd_ff': 'd_model',
+        },
+        model_args_key=model_args_key
+    )
+    for hyperparams in informer_params:
         input_dim = (hyperparams['batch_size'], hyperparams['feature_lag'], input_size)
 
-        hyperparams.update({"input_dim": input_dim})
+        # hyperparams[model_args_key]['input_dim'] = input_dim
 
         trainer = Trainer(
             features_path=forces_path,
@@ -82,14 +151,14 @@ if __name__ == '__main__':
             train_percent=train_percent,
             val_percent=val_percent,
             feature_win=input_dim[1],
-            target_win=hyperparams['model_args']['target_lag'],
+            target_win=hyperparams['model_args']['pred_len'],
             intersect=intersect,
             batch_size=hyperparams['batch_size'],
 
-            model_class_name=seq2seq_name,
+            model_class_name=ltsf_informer_name,
             model_args=hyperparams['model_args'],
 
-            exp_name='_'.join(f'{k}{v}_' if not isinstance(v, dict) else ''.join(f'{sk}{sv}' for sk, sv in v.items()) for k, v in hyperparams.items()),
+            exp_name='[ours]',
             optimizer_name=optimizer,
             criterion_name=criterion,
             patience=patience,

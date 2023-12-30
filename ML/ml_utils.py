@@ -1,22 +1,25 @@
 from itertools import product
-from typing import Any
+from typing import Any, Optional
 from loguru import logger
 
 
 def generate_hyperparam_combinations(
-        global_args: dict,
         model_args: dict,
-        model_args_key: str = 'model_args',
-        global_shared_pairs=None,
-        model_shared_pairs=None
+        global_args: dict,
+        model_args_key: str,
+        model_shared_pairs: Optional[dict[str, str]] = None,
+        global_shared_pairs: Optional[dict[str, str]] = None
 ) -> list[dict[str, Any]]:
     """
     generates a cross product of hyperparameters to consider
-
     :param model_args: a dictionary with keys that represent specific model argument and a value that is a list
                          of relevant hyperparams to consider
     :param global_args: like model_args but unrelated to the model itself (not part of model init arguments)
-    :return: a list of dictionary that represents model arguments, which is the cross product of all param_ranges
+    :param model_args_key: the key directing to the model arguments sub dictionary
+    :param model_shared_pairs: a dictionary that maps model arg name(s) to other model arg name(s), that indicates if
+                               the former should be set the same as the latter (and not part of the product)
+    :param global_shared_pairs: same as model_shared_pairs, just for the global arguments.
+    :return: a list of dictionary that represents runtime arguments, which is the cross product of all given args.
     """
     model_args_product = product(*(model_args[param] for param in model_args))
     model_param_names = model_args.keys()
