@@ -332,6 +332,26 @@ def train_val_test_split(
 # ║                                                  OTHER                                                       ║
 # ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
+def flatten_dict(d, parent_key='', sep='_'):
+    """
+    Flatten a nested dictionary.
+
+    Args:
+        d (dict): Nested dictionary.
+        parent_key (str): Prefix to use for keys.
+        sep (str): Separator between parent and child keys.
+
+    Returns:
+        dict: Flattened dictionary.
+    """
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
 def save_np_to_matlab_mat(
         data: np.ndarray,
         save_path: str,
