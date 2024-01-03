@@ -1,11 +1,15 @@
 import os
-
+import pickle
 from ML.Core.trainer import Trainer
 import torch
 from ML import ml_utils
 from Utilities import utils
 
 if __name__ == '__main__':
+	t = Trainer.from_model_dirname(r'G:\My Drive\Master\Lab\Thesis\ML\saved_models\LTSFLinear[64,1,4,False]_[ours,T=1]_2024-01-03_15-48-18')
+	preds,losses = t.predict('test', True)
+	with open('tstpreds.pkl', 'wb') as handle:
+		pickle.dump(testpreds, handle)
 
 	# mostly unchanged parameters:
 	exp_time = '22_11_2023'
@@ -13,7 +17,7 @@ if __name__ == '__main__':
 	val_percent = 0.1
 	intersect = 1
 	batch_size = 512
-	n_epochs = 30
+	n_epochs = 3
 	seed = 3407
 	criterion = 'L1Loss'
 	regularization_factor = 10
@@ -43,16 +47,6 @@ if __name__ == '__main__':
 	else:
 		input_size, output_size = forces.shape[-1], kinematics.shape[-1]
 
-	# mlp_args = dict(input_size=input_size, history_size=feature_win, output_size=output_size, hidden_dims_list=[1])
-	# rnn_args = dict(type='gru', input_size=input_size, output_size=output_size, hidden_dim=hid_size, num_layers=nlayers,
-	#                 dropout=0.05, bidirectional=False)
-	# ltsf_linear_args = dict(seq_len=feature_win, pred_len=target_win, channels=input_size, individual=False,
-	#                         output_size=output_size)
-	# ltsf_informer_args = dict(pred_len=target_win, label_len=0, output_attention=False, enc_in=input_size,
-	#                           d_model=hid_size, dropout=0.05, dec_in=output_size, embed_type=3, factor=1, d_ff=hid_size,
-	#                           e_layers=nlayers, activation='gelu', n_heads=2, d_layers=1, c_out=output_size,
-	#                           distil=True)
-	# ltsf_transformer_args = {key: value for key, value in ltsf_informer_args.items() if key != 'distil'}
 	model_args_key = 'model_args'
 	feature_lags = [128, 256, 512]
 	batch_sizes = [512]
@@ -146,8 +140,8 @@ if __name__ == '__main__':
 			batch_size=batch_sizes
 		),
 		model_args=dict(
-			seq_len=feature_lags,
-			pred_len=target_lags,
+			seq_len=[64],
+			pred_len=[1],
 			channels=[input_size],
 			individual=[False],
 			output_size=[output_size]
@@ -191,7 +185,7 @@ if __name__ == '__main__':
 #
 # valpreds = trainer.predict('val', True)
 # testpreds = trainer.predict('test', True)
-#
+# #
 # with open('valpreds_prssm.pkl', 'wb') as handle:
 # 	pickle.dump(valpreds, handle)
 # with open('tstpreds_prssm.pkl', 'wb') as handle:

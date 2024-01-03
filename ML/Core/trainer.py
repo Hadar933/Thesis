@@ -233,6 +233,7 @@ class Trainer:
 		""" fits the model to the training data, with early stopping """
 		fit_time = datetime.now().strftime(utils.TIME_FORMAT)
 		self._tb_writer = SummaryWriter(os.path.join('tb_runs', f"{self.model}_{self.exp_name}_{fit_time}"))
+		# add hpaarams with summarywriter:
 
 		prev_val_loss = float('inf')
 		for epoch in range(self.n_epochs):
@@ -247,28 +248,29 @@ class Trainer:
 				break
 			prev_val_loss = val_avg_loss
 
-		fit_info = {
-			"early_stopping": self._early_stopping,
-			"best_val_loss": self._best_val_loss.item(),
-			"best_model_path": self.best_model_path
-		}
-		utils.update_json(self.info_path, fit_info)
+		# fit_info = {
+		# 	"early_stopping": self._early_stopping,
+		# 	"best_val_loss": self._best_val_loss.item(),
+		# 	"best_model_path": self.best_model_path
+		# }
+		# utils.update_json(self.info_path, fit_info)
 
-
-
-	def predict(self, dataset: str, add_inputs: bool) -> dict[int, pd.DataFrame]:
+	def predict(self, dataset: str, add_inputs: bool) -> tuple[dict[int, pd.DataFrame], dict[str, float]]:
 		"""
 		creates a prediction for every loader in our loaders list based on the desired dataset
 		:param dataset: either train val or test
 		:param add_inputs: if true, merges the input alongside the predictions
 		:return: a dictionary with dataset index (int) keys and dataframe of predicted values, with possible inputs
 		"""
-		merge_helper = lambda df_to_merge, name, idx: pd.merge(merged_df, df_to_merge.add_prefix(f'[{name}] [#{idx}] '),
-															   how='outer', left_index=True, right_index=True)
+		# TODO : currently does NOT support target_lag > 1. need to handle the aggregated predictions.
+		merge_helper = lambda df_to_merge, name, idx: pd.merge(
+			merged_df, df_to_merge.add_prefix(f'[{name}] [#{idx}] '), how='outer', left_index=True, right_index=True
+		)
 		all_loaders = self.data_dict[dataset]['all_dataloaders']
 		self.model.load_state_dict(torch.load(self.best_model_path, map_location=self.device))
 		self.model.train(False)
 		predictions = dict()
+		losses = dict()
 		with torch.no_grad():
 			for j, data_loader in enumerate(all_loaders):
 				merged_df = pd.DataFrame()
@@ -276,7 +278,7 @@ class Trainer:
 					curr_inputs = pd.DataFrame(
 						self.features_normalizer.inverse_transform(
 							self.data_dict[dataset]['all_datasets'][j].normalized_features.squeeze(0)
-						), columns=['Fx', 'Fy', 'Fz', 'My', 'Mz']  # TODO: convert back to f1,f2,f3,f4
+						), columns=['F1', 'F2', 'F3', 'F4']  # TODO: use Fx', 'Fy', 'Fz', 'My', 'Mz for PRSSM
 					)
 					merged_df = merge_helper(curr_inputs, 'input', j)
 				curr_preds, curr_trues = [], []
@@ -288,10 +290,11 @@ class Trainer:
 					curr_trues.append(true_i.squeeze())
 				merged_df = merge_helper(pd.DataFrame(curr_preds), 'pred', j)
 				merged_df = merge_helper(pd.DataFrame(curr_trues), 'true', j)
-				merged_df = merged_df.map(lambda x: x.item() if isinstance(x, torch.Tensor) else x)
+				merged_df = merged_df.applymap(lambda x: x.item() if isinstance(x, torch.Tensor) else x)
 				predictions[j] = merged_df
+				losses[j] = self.loss_fn(torch.stack(curr_preds), torch.stack(curr_trues)).item()
 
-		return predictions
+		return predictions, losses
 
 	@classmethod
 	def from_model_dirname(cls, model_dirname):
