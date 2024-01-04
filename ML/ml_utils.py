@@ -75,13 +75,27 @@ def predict_multiple_models(models_dirs: list[str], dataset_name: str, add_input
 if __name__ == '__main__':
     results = predict_multiple_models(
         models_dirs=[
+            # LINEAR:
+            "/home/hadar/Thesis/ML/saved_models/LTSFLinear[128,1,4,True]_[ours,T=1_2024-01-04_15-25-42",
+            "/home/hadar/Thesis/ML/saved_models/LTSFLinear[128,16,4,False]_[ours,T=16_2024-01-04_15-27-00",
+            "/home/hadar/Thesis/ML/saved_models/LTSFLinear[512,32,4,False]_[ours,T=32_2024-01-04_15-37-24",
+            "/home/hadar/Thesis/ML/saved_models/LTSFLinear[512,64,4,False]_[ours,T=64_2024-01-04_15-38-31",
+            "/home/hadar/Thesis/ML/saved_models/LTSFLinear[128,128,4,False]_[ours,T=128_2024-01-04_15-29-26",
+
             # TRANSFORMER:
-            "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[1, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 1, 'gelu', 2, 2, 3]_[ours,T=1]_2024-01-02_04-03-09",
-            "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[16, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 2, 3]_[ours,T=16]_2024-01-01_09-10-33",
-            "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[32, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 2, 3]_[ours,T=32]_2023-12-31_14-26-35",
-            "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[64, False, 4, 32, None, None, 0.05, 3, '3', 1, 32, 1, 'gelu', 2, 2, 3]_[ours,T=64]_2023-12-31_19-34-47",
-            "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[128, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 1, 3]_[ours,T=128]_2024-01-01_00-15-22"
+            # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[1, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 1, 'gelu', 2, 2, 3]_[ours,T=1]_2024-01-02_04-03-09",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[16, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 2, 3]_[ours,T=16]_2024-01-01_09-10-33",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[32, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 2, 3]_[ours,T=32]_2023-12-31_14-26-35",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[64, False, 4, 32, None, None, 0.05, 3, '3', 1, 32, 1, 'gelu', 2, 2, 3]_[ours,T=64]_2023-12-31_19-34-47",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[128, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 1, 3]_[ours,T=128]_2024-01-01_00-15-22",
+
+            # INFORMER:
+            "/home/hadar/Thesis/ML/saved_models/LTSFInformer[16, False, 4, 64, None, None, 0.05, 3, '3', 1, 64, 1, 'gelu', 2, 2, 3]_[ours,T=16_2024-01-04_22-43-27",
+            "/home/hadar/Thesis/ML/saved_models/LTSFInformer[32, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 1, 3]_[ours,T=32_2024-01-04_17-19-27",
+
+
         ],
         dataset_name='test',
         add_inputs=False
     )
+    print(results.to_string())
