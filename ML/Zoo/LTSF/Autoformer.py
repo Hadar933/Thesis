@@ -20,7 +20,7 @@ from LTSFLinear.layers.Autoformer_EncDec import (
 )
 
 
-class Model(nn.Module):
+class Autoformer(nn.Module):
 	"""
 	Autoformer is the first method to achieve the series-wise connection,
 	with inherent O(LlogL) complexity
@@ -28,7 +28,7 @@ class Model(nn.Module):
 
 	def __init__(self, pred_len, label_len, output_attention, enc_in, d_model, dropout, dec_in, embed_type, factor,
 				 d_ff, e_layers, activation, n_heads, d_layers, c_out, moving_avg, embed=None, freq=None):
-		super(Model, self).__init__()
+		super(Autoformer, self).__init__()
 		self.pred_len = pred_len
 		self.label_len = label_len
 		self.output_attention = output_attention

@@ -32,6 +32,8 @@ if __name__ == '__main__':
     ltsf_linear_name = os.path.join('LTSF', 'Linear')
     ltsf_informer_name = os.path.join('LTSF', 'Informer')
     ltsf_transformer_name = os.path.join('LTSF', 'Transformer')
+    ltsf_autoformer_name = os.path.join('LTSF', 'Autoformer')
+
 
     parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
     forces_path = os.path.join(parent_dirname, exp_time, 'f19+f23_list_clean.pt')
@@ -57,95 +59,55 @@ if __name__ == '__main__':
     embed_types = [3]
     factors = [1]
     n_heads = [2]
+    e_layers = [1, 2]
+    d_layers = [1, 2]
+    distil = [True]
+    moving_avg = [25]
+    individual = [True, False]
 
     seq2seq_params = ml_utils.generate_hyperparam_combinations(
-        global_args=dict(
-            feature_lag=feature_lags,
-            batch_size=batch_sizes
-        ),
-        model_args=dict(
-            target_lag=target_lags,
-            enc_embedding_size=hidden_sizes,
-            enc_hidden_size=embedding_sizes,
-            enc_num_layers=layers,
-            enc_bidirectional=bidirs,
-            dec_output_size=[output_size]
-        ),
-        model_shared_pairs={
-            'dec_hidden_size': 'enc_hidden_size',
-            'dec_embedding_size': 'enc_embedding_size'
-        },
+        global_args=dict(feature_lag=feature_lags, batch_size=batch_sizes),
+        model_args=dict(target_lag=target_lags, enc_embedding_size=hidden_sizes, enc_hidden_size=embedding_sizes,
+                        enc_num_layers=layers, enc_bidirectional=bidirs, dec_output_size=[output_size]),
+        model_shared_pairs={'dec_hidden_size': 'enc_hidden_size', 'dec_embedding_size': 'enc_embedding_size'},
         model_args_key=model_args_key
     )
     transformer_params = ml_utils.generate_hyperparam_combinations(
-        global_args=dict(
-            feature_lag=feature_lags,
-            batch_size=batch_sizes
-        ),
-        model_args=dict(
-            pred_len=target_lags,
-            label_len=label_lens,
-            output_attention=output_attentions,
-            enc_in=[input_size],
-            d_model=hidden_sizes,
-            dropout=dropouts,
-            dec_in=[output_size],
-            embed_type=embed_types,  # no time encoding
-            factor=factors,
-            e_layers=[1, 2],
-            activation=activations,
-            n_heads=n_heads,
-            d_layers=[1, 2],
-            c_out=[output_size]
-        ),
-        model_shared_pairs={
-            'd_ff': 'd_model',
-        },
+        global_args=dict(feature_lag=feature_lags, batch_size=batch_sizes),
+        model_args=dict(pred_len=target_lags, label_len=label_lens, output_attention=output_attentions,
+                        enc_in=[input_size], d_model=hidden_sizes, dropout=dropouts, dec_in=[output_size],
+                        embed_type=embed_types, factor=factors, e_layers=e_layers, activation=activations,
+                        n_heads=n_heads, d_layers=d_layers, c_out=[output_size]),
+        model_shared_pairs={'d_ff': 'd_model'},
         model_args_key=model_args_key
     )
     informer_params = ml_utils.generate_hyperparam_combinations(
-        global_args=dict(
-            feature_lag=feature_lags,
-            batch_size=batch_sizes
-        ),
-        model_args=dict(
-            pred_len=target_lags,
-            label_len=label_lens,
-            output_attention=output_attentions,
-            enc_in=[input_size],
-            d_model=hidden_sizes,
-            dropout=dropouts,
-            dec_in=[output_size],
-            embed_type=embed_types,  # no time encoding
-            factor=factors,
-            e_layers=[1, 2],
-            activation=activations,
-            n_heads=n_heads,
-            d_layers=[1, 2],
-            c_out=[output_size],
-            distil=[True]
-        ),
-        model_shared_pairs={
-            'd_ff': 'd_model',
-        },
+        global_args=dict(feature_lag=feature_lags, batch_size=batch_sizes),
+        model_args=dict(pred_len=target_lags, label_len=label_lens, output_attention=output_attentions,
+                        enc_in=[input_size], d_model=hidden_sizes, dropout=dropouts, dec_in=[output_size],
+                        embed_type=embed_types, factor=factors, e_layers=e_layers, activation=activations,
+                        n_heads=n_heads, d_layers=d_layers, c_out=[output_size], distil=distil),
+        model_shared_pairs={'d_ff': 'd_model'},
+        model_args_key=model_args_key
+    )
+    autoformer_params = ml_utils.generate_hyperparam_combinations(
+        global_args=dict(feature_lag=feature_lags, batch_size=batch_sizes),
+        model_args=dict(pred_len=target_lags, label_len=label_lens, output_attention=output_attentions,
+                        enc_in=[input_size], d_model=hidden_sizes, dropout=dropouts, dec_in=[output_size],
+                        embed_type=embed_types, factor=factors, e_layers=e_layers, activation=activations,
+                        n_heads=n_heads, d_layers=d_layers, c_out=[output_size], moving_avg=moving_avg),
+        model_shared_pairs={'d_ff': 'd_model'},
         model_args_key=model_args_key
     )
     linear_params = ml_utils.generate_hyperparam_combinations(
-        global_args=dict(
-            batch_size=batch_sizes
-        ),
-        model_args=dict(
-            seq_len=feature_lags,
-            pred_len=target_lags,
-            channels=[input_size],
-            individual=[True, False],
-            output_size=[output_size]
-        ),
+        global_args=dict(batch_size=batch_sizes),
+        model_args=dict(seq_len=feature_lags, pred_len=target_lags, channels=[input_size], individual=individual,
+                        output_size=[output_size]),
         model_args_key=model_args_key
     )
-    for hyperparams in linear_params:
-        model_class_name = ltsf_linear_name
-        input_dim = (hyperparams['batch_size'], hyperparams[model_args_key]['seq_len'], input_size)
+    for hyperparams in seq2seq_params:
+        model_class_name = seq2seq_name
+        input_dim = (hyperparams['batch_size'], hyperparams['feature_lag'], input_size)
         if model_class_name == seq2seq_name:
             hyperparams[model_args_key]['input_dim'] = input_dim
 
@@ -155,14 +117,14 @@ if __name__ == '__main__':
             train_percent=train_percent,
             val_percent=val_percent,
             feature_win=input_dim[1],
-            target_win=hyperparams['model_args']['pred_len'],
+            target_win=hyperparams[model_args_key]['target_lag'],
             intersect=intersect,
             batch_size=hyperparams['batch_size'],
 
             model_class_name=model_class_name,
-            model_args=hyperparams['model_args'],
+            model_args=hyperparams[model_args_key],
 
-            exp_name=f"[ours,T={hyperparams['model_args']['pred_len']}",
+            exp_name=f"ResidualReLU[ours,T={hyperparams[model_args_key]['target_lag']}]",
             optimizer_name=optimizer,
             criterion_name=criterion,
             patience=patience,
