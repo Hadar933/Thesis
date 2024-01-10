@@ -125,7 +125,7 @@ if __name__ == '__main__':
             model_class_name=model_class_name,
             model_args=hyperparams[model_args_key],
 
-            exp_name=f"ResidualReLU[ours,T={hyperparams[model_args_key]['target_lag']}]",
+            exp_name=f"[ours,T={hyperparams[model_args_key]['pred_len']}",
             optimizer_name=optimizer,
             criterion_name=criterion,
             patience=patience,
