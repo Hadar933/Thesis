@@ -3,7 +3,30 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
-import LTSFLinear.layers.Embed as Embed
+import math
+
+
+class PositionalEmbedding(nn.Module):
+    """
+    with support to odd d_model
+    """
+
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEmbedding, self).__init__()
+
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        if d_model % 2 != 0:
+            pe[:, 1::2] = torch.cos(position * div_term)[:, 0:-1]
+        else:
+            pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        return self.pe[:x.size(0), :]
 
 
 class Encoder(nn.Module):
@@ -132,8 +155,10 @@ class Decoder(nn.Module):
         """
         embedded = self.embedding(dec_input).unsqueeze(1)
         attn_weights = self.attention(dec_hidden, enc_outputs).unsqueeze(1)  # [batch size,1, seq_size]
-        weighted_sum_of_enc_outputs = torch.bmm(attn_weights, enc_outputs)  # [batch size, 1, enc hidden dim * num directions]
-        rnn_input = torch.cat((embedded, weighted_sum_of_enc_outputs), dim=2)  # [batch size, 1,enc hid dim * dirs + emb size]
+        weighted_sum_of_enc_outputs = torch.bmm(attn_weights,
+                                                enc_outputs)  # [batch size, 1, enc hidden dim * num directions]
+        rnn_input = torch.cat((embedded, weighted_sum_of_enc_outputs),
+                              dim=2)  # [batch size, 1,enc hid dim * dirs + emb size]
         dec_output, dec_hidden = self.rnn(rnn_input, dec_hidden.unsqueeze(1).permute(1, 0, 2))
         # output = [batch size, 1, dec hidden size * n directions] = [batch_size, 1, dec hidden size]
         # hidden = [n layers * n directions, batch size, dec hid dim] = [1, batch_size, dec hidden size]
@@ -180,7 +205,7 @@ class Seq2seq(nn.Module):
         self.dec_hidden_size = dec_hidden_size
         self.dec_output_size = dec_output_size
         self.cast_input_to_dec_output = nn.Linear(input_dim[-1], dec_output_size)
-        self.pos_emb = Embed.PositionalEmbedding(d_model=self.input_size)
+        self.pos_emb = PositionalEmbedding(d_model=self.input_size)
 
         self.encoder = Encoder(
             self.input_size,
