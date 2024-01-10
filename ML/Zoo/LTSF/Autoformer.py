@@ -123,7 +123,7 @@ class Autoformer(nn.Module):
 				x_mark_enc=None, x_mark_dec=None, enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
 		# decomp init
 		mean = torch.mean(x_enc, dim=1).unsqueeze(1).repeat(1, self.pred_len, 1)
-		zeros = torch.zeros([x_enc.shape[0], self.pred_len, self.c_out], device=x_enc.device)
+		zeros = torch.zeros([x_enc.shape[0], self.pred_len, x_enc.shape[-1]], device=x_enc.device)
 		seasonal_init, trend_init = self.decomp(x_enc)
 		# decoder input
 		trend_init = torch.cat([trend_init[:, -self.label_len:, :], mean], dim=1)
