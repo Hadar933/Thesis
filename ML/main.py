@@ -1,5 +1,5 @@
 import os
-import pickle
+import json
 from ML.Core.trainer import Trainer
 import torch
 from ML import ml_utils
@@ -105,8 +105,9 @@ if __name__ == '__main__':
                         output_size=[output_size]),
         model_args_key=model_args_key
     )
-    for hyperparams in autoformer_params:
-        model_class_name = ltsf_autoformer_name
+    for hyperparams in seq2seq_params:
+        print(json.dumps(hyperparams,sort_keys=True,indent=4))
+        model_class_name = seq2seq_name
         input_dim = (hyperparams['batch_size'], hyperparams['feature_lag'], input_size)
         if model_class_name == seq2seq_name:
             hyperparams[model_args_key]['input_dim'] = input_dim
@@ -117,12 +118,12 @@ if __name__ == '__main__':
             train_percent=train_percent,
             val_percent=val_percent,
             feature_win=input_dim[1],
-            target_win=hyperparams[model_args_key]['pred_len'],
+            target_win=hyperparams[model_args_key]['target_lag'],
             intersect=intersect,
             batch_size=hyperparams['batch_size'],
 
             model_class_name=model_class_name,
-            model_args=hyperparams['model_args'],
+            model_args=hyperparams[model_args_key],
 
             exp_name=f"[ours,T={hyperparams[model_args_key]['pred_len']}",
             optimizer_name=optimizer,
