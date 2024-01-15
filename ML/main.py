@@ -8,7 +8,7 @@ from Utilities import utils
 if __name__ == '__main__':
 
     # mostly unchanged parameters:
-    exp_time = '22_11_2023'
+    exp_time = '10_10_2023'
     train_percent = 0.85
     val_percent = 0.1
     intersect = 1
@@ -36,8 +36,10 @@ if __name__ == '__main__':
 
 
     parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
-    forces_path = os.path.join(parent_dirname, exp_time, 'f19+f23_list_clean.pt')
-    kinematics_path = os.path.join(parent_dirname, exp_time, 'k19+k23_list_clean.pt')
+    # forces_path = os.path.join(parent_dirname, exp_time, 'f19+f23_list_clean.pt')
+    forces_path = os.path.join(parent_dirname, exp_time, 'forces_prssm.pt')
+    # kinematics_path = os.path.join(parent_dirname, exp_time, 'k19+k23_list_clean.pt')
+    kinematics_path = os.path.join(parent_dirname, exp_time, 'kinematics_prssm.pt')
     forces, kinematics = torch.load(forces_path), torch.load(kinematics_path)
     if isinstance(forces, list) and isinstance(kinematics, list):
         input_size, output_size = forces[0].shape[-1], kinematics[0].shape[-1]
@@ -45,7 +47,7 @@ if __name__ == '__main__':
         input_size, output_size = forces.shape[-1], kinematics.shape[-1]
 
     model_args_key = 'model_args'
-    feature_lags = [128, 256, 512]
+    feature_lags = [128, 256]
     batch_sizes = [512]
     target_lags = [1, 16, 32, 64, 128]
     embedding_sizes = [2, 4, 8, 16]
@@ -93,9 +95,9 @@ if __name__ == '__main__':
     autoformer_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(feature_lag=feature_lags, batch_size=batch_sizes),
         model_args=dict(pred_len=target_lags, label_len=label_lens, output_attention=output_attentions,
-                        enc_in=[input_size], d_model=hidden_sizes, dropout=dropouts, dec_in=[output_size],
+                        enc_in=[input_size], d_model=hidden_sizes, dropout=dropouts, dec_in=[input_size],
                         embed_type=embed_types, factor=factors, e_layers=e_layers, activation=activations,
-                        n_heads=n_heads, d_layers=d_layers, c_out=[output_size], moving_avg=moving_avg),
+                        n_heads=n_heads, d_layers=d_layers, c_out=[input_size], moving_avg=moving_avg,output_size=[output_size]),
         model_shared_pairs={'d_ff': 'd_model'},
         model_args_key=model_args_key
     )
@@ -105,9 +107,9 @@ if __name__ == '__main__':
                         output_size=[output_size]),
         model_args_key=model_args_key
     )
-    for hyperparams in seq2seq_params:
+    for hyperparams in autoformer_params:
         print(json.dumps(hyperparams,sort_keys=True,indent=4))
-        model_class_name = seq2seq_name
+        model_class_name = ltsf_autoformer_name
         input_dim = (hyperparams['batch_size'], hyperparams['feature_lag'], input_size)
         if model_class_name == seq2seq_name:
             hyperparams[model_args_key]['input_dim'] = input_dim
@@ -118,14 +120,14 @@ if __name__ == '__main__':
             train_percent=train_percent,
             val_percent=val_percent,
             feature_win=input_dim[1],
-            target_win=hyperparams[model_args_key]['target_lag'],
+            target_win=hyperparams[model_args_key]['pred_len'],
             intersect=intersect,
             batch_size=hyperparams['batch_size'],
 
             model_class_name=model_class_name,
             model_args=hyperparams[model_args_key],
 
-            exp_name=f"[ours,T={hyperparams[model_args_key]['pred_len']}",
+            exp_name=f"[prssm,T={hyperparams[model_args_key]['pred_len']}",
             optimizer_name=optimizer,
             criterion_name=criterion,
             patience=patience,
