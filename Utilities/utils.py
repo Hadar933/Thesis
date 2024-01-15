@@ -42,7 +42,8 @@ def results_plotter(
         html.H1("Kinematics and Forces Data Visualization"),
         dcc.Dropdown(
             id='dataset-dropdown',
-            options=[{'label': f'Dataset {i}', 'value': i} for i in range(kinematics.size(0))],
+            options=[{'label': f'Dataset {i}', 'value': i} for i in
+                     range(len(kinematics) if isinstance(kinematics, list) else kinematics.size(0))],
             value=0  # Default value
         ),
         dcc.Graph(id='combined-graph')
@@ -54,9 +55,9 @@ def results_plotter(
     )
     def update_graph(selected_dataset):
         """ updates the graph based on the dataset index chosen in the dropdown menu """
-        phi_trace = go.Scatter(y=kinematics[selected_dataset, :, 0].numpy(), mode='lines', name='phi')
-        psi_trace = go.Scatter(y=kinematics[selected_dataset, :, 1].numpy(), mode='lines', name='psi')
-        force_traces = [go.Scatter(y=forces[selected_dataset, :, i].numpy(), mode='lines', name=f'F{i + 1}')
+        phi_trace = go.Scatter(y=kinematics[selected_dataset][:, 0].numpy(), mode='lines', name='phi')
+        psi_trace = go.Scatter(y=kinematics[selected_dataset][:, 1].numpy(), mode='lines', name='psi')
+        force_traces = [go.Scatter(y=forces[selected_dataset][:, i].numpy(), mode='lines', name=f'F{i + 1}')
                         for i in range(4)]
         traces = [phi_trace, psi_trace] + force_traces
         layout = go.Layout(
@@ -352,6 +353,8 @@ def flatten_dict(d, parent_key='', sep='_'):
         else:
             items.append((new_key, v))
     return dict(items)
+
+
 def save_np_to_matlab_mat(
         data: np.ndarray,
         save_path: str,
@@ -492,7 +495,7 @@ def plot_model_predictions(
         predictions = df[predictions_cols].values
 
         # Plotting inputs in the top row
-        for i,label in zip(range(inputs.shape[1]),['Fx','Fy','Fz','My','Mz']):
+        for i, label in zip(range(inputs.shape[1]), ['Fx', 'Fy', 'Fz', 'My', 'Mz']):
             axs[0, idx].plot(inputs[:, i], label=label, color=force_colors[i])
 
         axs[0, idx].set_ylabel('Force and Torque Values [N] or [Nm]')
@@ -532,14 +535,7 @@ def plot_model_predictions(
 
 
 if __name__ == '__main__':
-    # exp_date = '19_10_2023'
-    # exp_name = '[F=7.886_A=M_PIdiv5.401_K=0.03]'
-    # filename = 'merged_data_preprocessed_and_encoded.pkl'
-    # df = pd.read_pickle(fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}\{filename}")
-    # plot_df_with_plotly(
-    # 	df=df,
-    # 	ignore_cols=['p0', 'p1', 'p2', 'center_of_mass']
-    # )
-    with open('/home/hadar/Thesis/ML/tstpreds_prssm.pkl', 'rb') as handle:
-        tstpreds = pickle.load(handle)
-    plot_model_predictions(tstpreds,[0,1,2,3])
+    results_plotter(
+        kinematics_path='/home/hadar/Thesis/Results/22_11_2023/k19+k23_list_clean.pt',
+        forces_path='/home/hadar/Thesis/Results/22_11_2023/f19+f23_list_clean.pt'
+    )
