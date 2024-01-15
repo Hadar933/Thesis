@@ -27,7 +27,7 @@ class Autoformer(nn.Module):
 	"""
 
 	def __init__(self, pred_len, label_len, output_attention, enc_in, d_model, dropout, dec_in, embed_type, factor,
-				 d_ff, e_layers, activation, n_heads, d_layers, c_out, moving_avg, embed=None, freq=None):
+				 d_ff, e_layers, activation, n_heads, d_layers, c_out, moving_avg,output_size, embed=None, freq=None):
 		super(Autoformer, self).__init__()
 		self.pred_len = pred_len
 		self.label_len = label_len
@@ -47,6 +47,7 @@ class Autoformer(nn.Module):
 		self.d_layers = d_layers
 		self.c_out = c_out
 		self.moving_avg = moving_avg
+		self.output_size =output_size
 
 		# Decomp
 		kernel_size = self.moving_avg
@@ -111,8 +112,10 @@ class Autoformer(nn.Module):
 				for l in range(self.d_layers)
 			],
 			norm_layer=my_Layernorm(self.d_model),
-			projection=nn.Linear(self.d_model, self.c_out, bias=True)
+			projection=nn.Linear(self.d_model, self.output_size, bias=True),
+			trend_projection=nn.Linear(self.enc_in,self.output_size,bias=False)
 		)
+
 
 	def __str__(self):
 		return f"LTSFAutoFormer[{self.pred_len}, {self.output_attention}, {self.enc_in}, {self.d_model}, " \

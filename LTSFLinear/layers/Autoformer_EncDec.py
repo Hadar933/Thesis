@@ -161,11 +161,12 @@ class Decoder(nn.Module):
 	Autoformer encoder
 	"""
 
-	def __init__(self, layers, norm_layer=None, projection=None):
+	def __init__(self, layers, norm_layer=None, projection=None,trend_projection=None):
 		super(Decoder, self).__init__()
 		self.layers = nn.ModuleList(layers)
 		self.norm = norm_layer
 		self.projection = projection
+		self.trend_projection = trend_projection
 
 	def forward(self, x, cross, x_mask=None, cross_mask=None, trend=None):
 		for layer in self.layers:
@@ -177,4 +178,5 @@ class Decoder(nn.Module):
 
 		if self.projection is not None:
 			x = self.projection(x)
+			trend = self.trend_projection(trend)
 		return x, trend
