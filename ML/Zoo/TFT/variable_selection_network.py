@@ -1,8 +1,6 @@
 from typing import Optional
-
 import torch.nn as nn
 import torch
-
 from ML.Zoo.TFT.feature_embedding import PerFeatureEmbedding
 from ML.Zoo.TFT.gated_residual_network import GRN
 
@@ -17,8 +15,8 @@ class VSN(nn.Module):
 	):
 		super().__init__()
 		self.weight_network = GRN(
-			d_hidden=d_hidden,
 			d_input=d_hidden * n_features,
+			d_hidden=d_hidden,
 			d_output=n_features,
 			d_context=d_hidden if add_context else None,
 			dropout=dropout,
