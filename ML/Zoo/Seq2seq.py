@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 import math
-
+from adaptive_spectrum_Layer import AdaptiveSpectrumLayer
 
 class PositionalEmbedding(nn.Module):
     """
@@ -228,6 +228,12 @@ class Seq2seq(nn.Module):
             self.attention,
             enc_bidirectional
         )
+        self.adaptive_spectrum_layer = AdaptiveSpectrumLayer(
+            history_size=feature_lag,
+            hidden_dim=enc_hidden_size,
+            sampling_rate=5000,
+            frequency_threshold=200
+        )
         self.output_size = self.batch_size, self.target_lag, dec_output_size
 
     def __str__(self) -> str:
@@ -252,7 +258,8 @@ class Seq2seq(nn.Module):
         @return:
         """
         outputs = []
-        x = x + self.pos_emb(x)
+        adaptive_spectrum = self.adaptive_spectrum_layer(x)
+        x = x + self.pos_emb(x) + adaptive_spectrum
         encoder_outputs, hidden = self.encoder(x)
         input = self.cast_input_to_dec_output(x[:, -1, :])
         for t in range(self.target_lag):
@@ -271,8 +278,8 @@ if __name__ == '__main__':
     dec_embedding_size = 10
     dec_hidden_size = 12
     dec_output_size = 2
-    batch_size = 2048
-    feature_lag = 480
+    batch_size = 2
+    feature_lag = 512
     input_size = 7
     input_dim = batch_size, feature_lag, input_size
     xx = torch.randn(batch_size, feature_lag, input_size)
