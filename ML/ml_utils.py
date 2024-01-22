@@ -102,13 +102,14 @@ if __name__ == '__main__':
             # "/home/hadar/Thesis/ML/saved_models/Input(512, 128, 4)seq2seq[32,8,16,1,True,8,16,3]_ResidualReLU[ours,T=32]_2024-01-05_04-43-14",
             # "/home/hadar/Thesis/ML/saved_models/Input(512, 128, 4)seq2seq[64,4,16,1,True,4,16,3]_ResidualReLU[ours,T=64]_2024-01-05_07-26-00",
             # "/home/hadar/Thesis/ML/saved_models/Input(512, 128, 4)seq2seq[128,8,16,1,True,8,16,3]_ResidualReLU[ours,T=128]_2024-01-05_15-46-45"
-
+            # ==== SEQ2SEQ w/ASL:
+            # "/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ASL[ours,T=1_2024-01-22_11-12-37",
             # ==== AUTOFORMER:
-            "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[1, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 2, 'gelu', 2, 2, 4, 25]_[ours,T=1_2024-01-10_16-35-19",
-            "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[16, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 1, 'gelu', 2, 2, 4, 25]_[ours,T=16_2024-01-10_18-35-49",
-            "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[32, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 2, 'gelu', 2, 2, 4, 25]_[ours,T=32_2024-01-10_20-42-52",
-            "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[64, False, 4, 4, None, None, 0.05, 4, '3', 1, 4, 2, 'gelu', 2, 1, 4, 25]_[ours,T=64_2024-01-10_23-03-30",
-            "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[128, False, 4, 4, None, None, 0.05, 4, '3', 1, 4, 1, 'gelu', 2, 1, 4, 25]_[ours,T=128_2024-01-11_01-22-24",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[1, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 2, 'gelu', 2, 2, 4, 25]_[ours,T=1_2024-01-10_16-35-19",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[16, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 1, 'gelu', 2, 2, 4, 25]_[ours,T=16_2024-01-10_18-35-49",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[32, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 2, 'gelu', 2, 2, 4, 25]_[ours,T=32_2024-01-10_20-42-52",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[64, False, 4, 4, None, None, 0.05, 4, '3', 1, 4, 2, 'gelu', 2, 1, 4, 25]_[ours,T=64_2024-01-10_23-03-30",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[128, False, 4, 4, None, None, 0.05, 4, '3', 1, 4, 1, 'gelu', 2, 1, 4, 25]_[ours,T=128_2024-01-11_01-22-24",
 
             # ==== FEDFORMER:
 
@@ -153,3 +154,4 @@ if __name__ == '__main__':
         dataset_name='test',
         add_inputs=False
     )
+    print(results)

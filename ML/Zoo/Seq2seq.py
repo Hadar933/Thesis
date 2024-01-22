@@ -4,7 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 import math
-from adaptive_spectrum_Layer import AdaptiveSpectrumLayer
+from ML.Zoo.adaptive_spectrum_Layer import AdaptiveSpectrumLayer
+
 
 class PositionalEmbedding(nn.Module):
     """
@@ -57,7 +58,6 @@ class Encoder(nn.Module):
         self.bidirectional = bidirectional
         self.num_directions = 2 if self.bidirectional else 1
         self.embedding = nn.Linear(self.input_size, self.embedding_size)
-        # self.embedding = GRN(self.input_size, self.hidden_size, self.embedding_size)
         self.rnn = nn.GRU(self.embedding_size, self.hidden_size, self.num_layers, bidirectional=self.bidirectional,
                           batch_first=True)
         self.fc = nn.Linear(self.hidden_size * self.num_directions * self.num_layers, self.dec_hidden_size)
@@ -229,8 +229,8 @@ class Seq2seq(nn.Module):
             enc_bidirectional
         )
         self.adaptive_spectrum_layer = AdaptiveSpectrumLayer(
-            history_size=feature_lag,
-            hidden_dim=enc_hidden_size,
+            history_size=self.feature_lags,
+            hidden_dim=self.enc_hidden_size,
             sampling_rate=5000,
             frequency_threshold=200
         )

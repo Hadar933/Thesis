@@ -11,7 +11,7 @@ class VSN(nn.Module):
 			d_hidden: int,
 			n_features: int,
 			dropout: float = 0.0,
-			add_context: bool = False,
+			add_context: bool = False
 	):
 		super().__init__()
 		self.weight_network = GRN(
@@ -19,7 +19,7 @@ class VSN(nn.Module):
 			d_hidden=d_hidden,
 			d_output=n_features,
 			d_context=d_hidden if add_context else None,
-			dropout=dropout,
+			dropout=dropout
 		)
 
 		self.variable_network = nn.ModuleList(
