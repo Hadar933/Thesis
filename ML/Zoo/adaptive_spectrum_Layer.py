@@ -116,14 +116,18 @@ class AdaptiveSpectrumLayer(nn.Module):
         flattened_fourier_features = torch.cat(projected_fourier_features, dim=-1)  # (B,1,F,hidden_dim*n_frequencies)
         weights = self.softmax(self.gate_of_flattened_ffts(flattened_fourier_features))  # (B,1,F,n_frequencies)
         if self.complexify:
-            fft = torch.cat([
+            new_fft = torch.cat([
                 self.complexifier_layers[i](projected_fourier_features[i]) for i in range(self.n_frequencies)
             ], dim=1).squeeze(-1)
-        weighted_fft = fft * weights.squeeze(1).permute(0, 2, 1)  # (B,n_frequencies,F)
+            weighted_fft = new_fft * weights.squeeze(1).permute(0, 2, 1)  # (B,n_frequencies,F)
+            weighted_fft = weighted_fft + fft
+        else:
+            weighted_fft = fft * weights.squeeze(1).permute(0, 2, 1)  # (B,n_frequencies,F)
         weighted_fft = torch.nn.functional.pad(
             input=weighted_fft,
             pad=(0, 0, 0, (self.history_size // 2 + 1) - self.n_frequencies, 0, 0)
         )
+
         reconstructed_x = torch.fft.irfft(weighted_fft, dim=self.time_axis)
         return reconstructed_x
 
