@@ -84,14 +84,14 @@ if __name__ == '__main__':
             # "/home/hadar/Thesis/ML/saved_models/LTSFLinear[128,128,4,False]_[ours,T=128_2024-01-04_15-29-26",
 
             # ==== TRANSFORMER:
-            "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[1, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 1, 'gelu', 2, 2, 3]_[ours,T=1]_2024-01-02_04-03-09",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[1, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 1, 'gelu', 2, 2, 3]_[ours,T=1]_2024-01-02_04-03-09",
             # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[16, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 2, 3]_[ours,T=16]_2024-01-01_09-10-33",
             # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[32, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 2, 3]_[ours,T=32]_2023-12-31_14-26-35",
             # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[64, False, 4, 32, None, None, 0.05, 3, '3', 1, 32, 1, 'gelu', 2, 2, 3]_[ours,T=64]_2023-12-31_19-34-47",
             # "/home/hadar/Thesis/ML/saved_models/LTSFVanillaTransformer[128, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 1, 3]_[ours,T=128]_2024-01-01_00-15-22",
 
             # ==== INFORMER:
-            "/home/hadar/Thesis/ML/saved_models/LTSFInformer[16, False, 4, 64, None, None, 0.05, 3, '3', 1, 64, 1, 'gelu', 2, 2, 3]_[ours,T=16_2024-01-04_22-43-27",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFInformer[16, False, 4, 64, None, None, 0.05, 3, '3', 1, 64, 1, 'gelu', 2, 2, 3]_[ours,T=16_2024-01-04_22-43-27",
             # "/home/hadar/Thesis/ML/saved_models/LTSFInformer[32, False, 4, 16, None, None, 0.05, 3, '3', 1, 16, 2, 'gelu', 2, 1, 3]_[ours,T=32_2024-01-04_17-19-27",
             # "/home/hadar/Thesis/ML/saved_models/LTSFInformer[64, False, 4, 32, None, None, 0.05, 3, '3', 1, 32, 1, 'gelu', 2, 1, 3]_[ours,T=64_2024-01-04_18-58-12",
             # "/home/hadar/Thesis/ML/saved_models/LTSFInformer[128, False, 4, 64, None, None, 0.05, 3, '3', 1, 64, 1, 'gelu', 2, 2, 3]_[ours,T=128_2024-01-04_20-54-50"
@@ -104,9 +104,15 @@ if __name__ == '__main__':
             # "/home/hadar/Thesis/ML/saved_models/Input(512, 128, 4)seq2seq[64,4,16,1,True,4,16,3]_ResidualReLU[ours,T=64]_2024-01-05_07-26-00",
             # "/home/hadar/Thesis/ML/saved_models/Input(512, 128, 4)seq2seq[128,8,16,1,True,8,16,3]_ResidualReLU[ours,T=128]_2024-01-05_15-46-45"
             # ==== SEQ2SEQ w/ASL:
-            '/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADLsincos_dropoutfirst0.1[ours,T=1_2024-01-22_19-49-39',
+            # '/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADLsincos_dropoutfirst0.1[ours,T=1_2024-01-22_19-49-39',
+            "/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADL[ours,T=1_2024-01-25_17-21-07",
+            # "/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADLOrtho[ours,T=1_2024-01-25_17-12-47",
+            # "/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADLComplexOrtho[ours,T=1_2024-01-25_16-43-39",
+
+
+
             # ==== AUTOFORMER:
-            "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[1, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 2, 'gelu', 2, 2, 4, 25]_[ours,T=1_2024-01-10_16-35-19",
+            # "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[1, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 2, 'gelu', 2, 2, 4, 25]_[ours,T=1_2024-01-10_16-35-19",
             # "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[16, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 1, 'gelu', 2, 2, 4, 25]_[ours,T=16_2024-01-10_18-35-49",
             # "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[32, False, 4, 8, None, None, 0.05, 4, '3', 1, 8, 2, 'gelu', 2, 2, 4, 25]_[ours,T=32_2024-01-10_20-42-52",
             # "/home/hadar/Thesis/ML/saved_models/LTSFAutoFormer[64, False, 4, 4, None, None, 0.05, 4, '3', 1, 4, 2, 'gelu', 2, 1, 4, 25]_[ours,T=64_2024-01-10_23-03-30",
