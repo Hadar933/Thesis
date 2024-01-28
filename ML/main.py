@@ -125,7 +125,6 @@ if __name__ == '__main__':
         model_args_key=model_args_key
     )
     for hyperparams in seq2seq_params:
-        print(json.dumps(hyperparams, sort_keys=True, indent=4))
         model_class_name = seq2seq_name
         input_dim = (hyperparams['batch_size'], hyperparams['feature_lags'], input_size)
         if model_class_name == seq2seq_name:
