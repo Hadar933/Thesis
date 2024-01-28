@@ -103,13 +103,11 @@ class FedFormer(nn.Module):
 			encoder_self_att = FourierBlock(in_channels=self.d_model,
 											out_channels=self.d_model,
 											seq_len=self.feature_lags,
-											n_heads=self.n_heads,
 											modes=self.modes,
 											mode_select_method=self.mode_select)
 			decoder_self_att = FourierBlock(in_channels=self.d_model,
 											out_channels=self.d_model,
 											seq_len=self.feature_lags // 2 + self.pred_len,
-											n_heads=self.n_heads,
 											modes=self.modes,
 											mode_select_method=self.mode_select)
 			decoder_cross_att = FourierCrossAttention(in_channels=self.d_model,
