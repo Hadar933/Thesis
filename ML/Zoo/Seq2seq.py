@@ -172,7 +172,7 @@ class Seq2seq(nn.Module):
     def __init__(
             self,
             input_dim: Tuple,
-            target_lag: int,
+            target_lags: int,
             enc_embedding_size: int,
             enc_hidden_size: int,
             enc_num_layers: int,
@@ -184,7 +184,7 @@ class Seq2seq(nn.Module):
         """
 
         @param input_dim: [batch_size, feature_lags, encoder_input_size]
-        @param target_lag: horizon to forcast
+        @param target_lags: horizon to forcast
         @param enc_embedding_size: the embedding size for the encoder
         @param enc_hidden_size: the hidden size for the encoder
         @param enc_num_layers: the number of rnn cells in the encoder
@@ -196,7 +196,7 @@ class Seq2seq(nn.Module):
         super(Seq2seq, self).__init__()
         self.input_dim = input_dim
         self.batch_size, self.feature_lags, self.input_size = input_dim
-        self.target_lag = target_lag
+        self.target_lag = target_lags
         self.enc_embedding_size = enc_embedding_size
         self.enc_hidden_size = enc_hidden_size
         self.enc_num_layers = enc_num_layers
@@ -204,11 +204,17 @@ class Seq2seq(nn.Module):
         self.dec_embedding_size = enc_embedding_size
         self.dec_hidden_size = dec_hidden_size
         self.dec_output_size = dec_output_size
-        self.cast_input_to_dec_output = nn.Linear(input_dim[-1], dec_output_size)
+        self.use_adl: bool = False
+        self.concat_adl: bool = False
+
+        self.cast_input_to_dec_output = nn.Linear(
+            in_features=self.input_size * 2 if self.concat_adl else self.input_size,
+            out_features=dec_output_size
+        )
         self.pos_emb = PositionalEmbedding(d_model=self.input_size)
 
         self.encoder = Encoder(
-            self.input_size,
+            self.input_size * 2 if self.concat_adl else self.input_size,
             enc_embedding_size,
             enc_hidden_size,
             dec_hidden_size,
@@ -228,12 +234,18 @@ class Seq2seq(nn.Module):
             self.attention,
             enc_bidirectional
         )
-        self.adaptive_spectrum_layer = AdaptiveSpectrumLayer(
-            history_size=self.feature_lags,
-            hidden_dim=self.enc_hidden_size,
-            sampling_rate=5000,
-            frequency_threshold=200
-        )
+        if self.use_adl:
+            self.adl1 = AdaptiveSpectrumLayer(
+                history_size=self.feature_lags,
+                hidden_dim=self.enc_hidden_size,
+                sampling_rate=5000,
+                frequency_threshold=200,
+                complexify=False,
+                gate=True,
+                use_freqs=False,
+                dropout_rate=0.1,
+                multidim_fft=True
+            )
         self.output_size = self.batch_size, self.target_lag, dec_output_size
 
     def __str__(self) -> str:
@@ -258,8 +270,13 @@ class Seq2seq(nn.Module):
         @return:
         """
         outputs = []
-        adaptive_spectrum = self.adaptive_spectrum_layer(x)
-        x = x + self.pos_emb(x) + adaptive_spectrum
+        x = x + self.pos_emb(x)
+        if self.use_adl:
+            adaptive_spectrum = self.adl1(x)
+            if self.concat_adl:
+                x = torch.cat((x, adaptive_spectrum), dim=-1)
+            else:
+                x = x + adaptive_spectrum
         encoder_outputs, hidden = self.encoder(x)
         input = self.cast_input_to_dec_output(x[:, -1, :])
         for t in range(self.target_lag):
