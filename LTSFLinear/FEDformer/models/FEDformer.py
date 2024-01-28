@@ -1,15 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from layers.Embed import DataEmbedding, DataEmbedding_wo_pos,DataEmbedding_wo_pos_temp,DataEmbedding_wo_temp
-from layers.AutoCorrelation import AutoCorrelation, AutoCorrelationLayer
-from layers.FourierCorrelation import FourierBlock, FourierCrossAttention
-from layers.MultiWaveletCorrelation import MultiWaveletCross, MultiWaveletTransform
-from layers.SelfAttention_Family import FullAttention, ProbAttention
-# from layers.FED_wo_decomp import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
-from layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
-import math
-import numpy as np
+from LTSFLinear.FEDformer.layers.Embed import DataEmbedding, DataEmbedding_wo_pos,DataEmbedding_wo_pos_temp,DataEmbedding_wo_temp
+from LTSFLinear.FEDformer.layers.AutoCorrelation import AutoCorrelation, AutoCorrelationLayer
+from LTSFLinear.FEDformer.layers.FourierCorrelation import FourierBlock, FourierCrossAttention
+from LTSFLinear.FEDformer.layers.MultiWaveletCorrelation import MultiWaveletCross, MultiWaveletTransform
+from LTSFLinear.FEDformer.layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -189,8 +185,7 @@ if __name__ == '__main__':
         ab = 0
         modes = 32
         mode_select = 'random'
-        # version = 'Fourier'
-        version = 'Wavelets'
+        version = 'Fourier'
         moving_avg = [12, 24]
         L = 1
         base = 'legendre'
@@ -213,6 +208,7 @@ if __name__ == '__main__':
         c_out = 7
         activation = 'gelu'
         wavelet = 0
+        embed_type=3
 
     configs = Configs()
     model = Model(configs)
