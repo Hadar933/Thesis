@@ -204,7 +204,7 @@ class Seq2seq(nn.Module):
         self.dec_embedding_size = enc_embedding_size
         self.dec_hidden_size = dec_hidden_size
         self.dec_output_size = dec_output_size
-        self.use_adl: bool = False
+        self.use_adl: bool = True
         self.concat_adl: bool = False
 
         self.cast_input_to_dec_output = nn.Linear(

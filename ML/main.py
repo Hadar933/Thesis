@@ -2,6 +2,8 @@ import os
 import json
 from typing import Literal
 
+from tqdm import tqdm
+
 from ML.Core.trainer import Trainer
 import torch
 from ML import ml_utils
@@ -63,15 +65,14 @@ if __name__ == '__main__':
     embed_types = [3]
     factors = [1]
     n_heads = [2]
-    e_layers = [1, 2]
-    d_layers = [1, 2]
+    e_layers = [1]
+    d_layers = [2]
     distil = [True]
     moving_avg = [25]
     fedformer_version = ['Fourier']
     fedformer_mode_select = ['random']
     fedformer_n_modes = [32]
     individual = [True, False]
-
     seq2seq_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(feature_lags=feature_lags, batch_size=batch_sizes),
         model_args=dict(target_lags=target_lags, enc_embedding_size=[30], enc_hidden_size=[35],
@@ -80,9 +81,9 @@ if __name__ == '__main__':
         model_args_key=model_args_key
     )
     transformer_params = ml_utils.generate_hyperparam_combinations(
-        global_args=dict(feature_lag=feature_lags, batch_size=batch_sizes),
-        model_args=dict(pred_len=target_lags, label_len=label_lens, output_attention=output_attentions,
-                        enc_in=[input_size], d_model=hidden_sizes, dropout=dropouts, dec_in=[output_size],
+        global_args=dict(batch_size=batch_sizes),
+        model_args=dict(feature_lags=feature_lags,target_lags=target_lags, label_len=label_lens, output_attention=output_attentions,
+                        enc_in=[input_size], d_model=[16], dropout=dropouts, dec_in=[output_size],
                         embed_type=embed_types, factor=factors, e_layers=e_layers, activation=activations,
                         n_heads=n_heads, d_layers=d_layers, c_out=[output_size]),
         model_shared_pairs={'d_ff': 'd_model'},
@@ -124,9 +125,20 @@ if __name__ == '__main__':
                         output_size=[output_size]),
         model_args_key=model_args_key
     )
-    for hyperparams in seq2seq_params:
-        model_class_name = seq2seq_name
-        input_dim = (hyperparams['batch_size'], hyperparams['feature_lags'], input_size)
+    used_hyperparams = seq2seq_params  # CHANGE THIS
+    model_class_name = seq2seq_name  # CHANGE THIS
+
+    for i, hyperparams in enumerate(used_hyperparams):
+        print('=' * 20 + f' Hyperparams iter #{i} ' + '=' * 20)
+        if 'feature_lags' in hyperparams:
+            flags = hyperparams['feature_lags']
+        else:
+            flags = hyperparams[model_args_key]['feature_lags']
+        if 'target_lags' in hyperparams:
+            tlags = hyperparams['target_lags']
+        else:
+            tlags = hyperparams[model_args_key]['target_lags']
+        input_dim = (hyperparams['batch_size'], flags, input_size)
         if model_class_name == seq2seq_name:
             hyperparams[model_args_key]['input_dim'] = input_dim
 
@@ -136,14 +148,14 @@ if __name__ == '__main__':
             train_percent=train_percent,
             val_percent=val_percent,
             feature_win=input_dim[1],
-            target_win=hyperparams[model_args_key]['target_lags'],
+            target_win=tlags,
             intersect=intersect,
             batch_size=hyperparams['batch_size'],
 
             model_class_name=model_class_name,
             model_args=hyperparams[model_args_key],
 
-            exp_name=f"[{data},T={hyperparams[model_args_key]['target_lags']}",
+            exp_name=f"ADLSigmoidWeightsMultiFFT[{data},T={tlags}",
             optimizer_name=optimizer,
             criterion_name=criterion,
             patience=patience,

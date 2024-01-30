@@ -50,7 +50,6 @@ def generate_hyperparam_combinations(
         {**{model_args_key: model_args_dict}, **global_args_dict} for global_args_dict in global_args_product_dicts for
         model_args_dict in model_args_product_dicts
     ]
-    logger.info(f'Generated {len(hyperparam_combinations)} hyper-parameter combinations')
     return hyperparam_combinations
 
 
@@ -104,10 +103,7 @@ if __name__ == '__main__':
             # "/home/hadar/Thesis/ML/saved_models/Input(512, 128, 4)seq2seq[64,4,16,1,True,4,16,3]_ResidualReLU[ours,T=64]_2024-01-05_07-26-00",
             # "/home/hadar/Thesis/ML/saved_models/Input(512, 128, 4)seq2seq[128,8,16,1,True,8,16,3]_ResidualReLU[ours,T=128]_2024-01-05_15-46-45"
             # ==== SEQ2SEQ w/ASL:
-            # '/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADLsincos_dropoutfirst0.1[ours,T=1_2024-01-22_19-49-39',
-            "/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADL[ours,T=1_2024-01-25_17-21-07",
-            # "/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADLOrtho[ours,T=1_2024-01-25_17-12-47",
-            # "/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADLComplexOrtho[ours,T=1_2024-01-25_16-43-39",
+            "/home/hadar/Thesis/ML/saved_models/Input(512, 512, 4)seq2seq[1,30,35,1,True,30,35,3]_ADL[ours,T=1_2024-01-28_21-56-33/"
 
 
 
@@ -161,4 +157,3 @@ if __name__ == '__main__':
         dataset_name='test',
         add_inputs=False
     )
-    print(results.to_string())

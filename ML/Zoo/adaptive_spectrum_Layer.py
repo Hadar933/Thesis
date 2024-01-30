@@ -91,6 +91,7 @@ class AdaptiveSpectrumLayer(nn.Module):
         self.n_frequencies = self._frequencies_to_use()
 
         self.softmax = nn.Softmax(dim=-1)
+        self.sigmoid = nn.Sigmoid()
         if self.gate:
             self.gate_of_flattened_ffts = SimpleGate(
                 input_size=self.n_frequencies * self.hidden_dim,
@@ -130,7 +131,7 @@ class AdaptiveSpectrumLayer(nn.Module):
         :param time_features: a representation of x itself, with shape (B,H,F)
         :return: a tensor with shape (B,H,F)
         """
-        fft = torch.fft.rfft(x, dim=self.time_axis)[:, :self.n_frequencies, :]  # (B,n_freqs,F)
+        fft = torch.fft.rfft(x, dim=self.time_axis,norm='ortho')[:, :self.n_frequencies, :]  # (B,n_freqs,F)
         magnitude, angle = torch.abs(fft), torch.angle(fft)  # (B,n_freqs,F), (B,n_freqs,F)
         fourier_features = torch.stack([magnitude, torch.sin(angle), torch.cos(angle)], dim=-1)  # (B,n_freqs,F,3)
         if self.multidim_fft:
@@ -150,7 +151,8 @@ class AdaptiveSpectrumLayer(nn.Module):
             for i in range(self.n_frequencies)
         ]  # [(B,1,F,hidden_dim)_{1}, ...,(B,1,F,hidden_dim)_{n_freqs}]
         flattened_fourier_features = torch.cat(projected_fourier_features, dim=-1)  # (B,1,F,hidden_dim*n_frequencies)
-        weights = self.softmax(self.gate_of_flattened_ffts(flattened_fourier_features))  # (B,1,F,n_frequencies)
+
+        weights = self.sigmoid(self.gate_of_flattened_ffts(flattened_fourier_features))  # (B,1,F,n_frequencies)
         if self.complexify:
             new_fft = torch.cat([
                 self.complexifier_layers[i](projected_fourier_features[i]) for i in range(self.n_frequencies)
@@ -165,7 +167,7 @@ class AdaptiveSpectrumLayer(nn.Module):
             pad=(0, 0, 0, (self.history_size // 2 + 1) - self.n_frequencies, 0, 0)
         )
 
-        reconstructed_x = torch.fft.irfft(weighted_fft, dim=self.time_axis)
+        reconstructed_x = torch.fft.irfft(weighted_fft, dim=self.time_axis,norm='ortho')
         return reconstructed_x
 
 
