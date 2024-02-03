@@ -36,34 +36,45 @@ def read_forces_csv(
 		forces_df[tare] -= forces_df[tare].iloc[0]
 	return forces_df, header_dict
 
-
 def plot_forces(
 		df: pd.DataFrame,
 		header: dict[str, list],
-		convert_to_time: bool = True
+		convert_to_time: bool = True,
+		line_width: float = 3.0,
+		legend_font_size: int = 16  # Adjust the legend font size as needed
 ):
 	sample_rate = int(header['Sampling rate'][0].split('/')[0])  # extracting int value frequency
 	start_time = " ".join(header['Start (Date Time)'])
+
 	if convert_to_time:
 		df.index = np.arange(0, len(df)) / sample_rate
+
 	mpl.use("TkAgg")
-	df.plot(
+	ax = df.plot(
 		title=f"Forces [{sample_rate} sample rate], [{start_time}]",
 		xlabel="Time [sec]" if convert_to_time else f"Sample [#]",
-		grid=True
+		grid=True,
+		linewidth=line_width
 	)
+
+	# Increase legend font size
+	ax.legend(fontsize=legend_font_size)
+
 	plt.show()
 
 
 if __name__ == '__main__':
-	from Utilities import utils
-	import os
-	tot = pd.DataFrame()
-	mainpath = r'G:\My Drive\Master\Lab\Thesis\Forces\experiments\08_11_2023'
-	for f in os.listdir(mainpath):
-		df, head = read_forces_csv(os.path.join(mainpath, f), 21)
-		df['+'.join(df.columns)] = df[df.columns].sum(axis=1)
-		df.columns = [f"{col} ({f.split('.')[0]})" for col in df.columns]
-		tot = pd.concat([tot, df], axis=1)
-	utils.plot_df_with_plotly(tot)
-z=1
+	df, head = read_forces_csv(
+		r'G:\My Drive\Master\Lab\Thesis\Forces\experiments\23_10_2023\Forces[F=9.701_A=M_PIdiv4.743_K=0.491].csv', 21)
+	plot_forces(df, head)
+# from Utilities import utils
+# import os
+# tot = pd.DataFrame()
+# mainpath = r'G:\My Drive\Master\Lab\Thesis\Forces\experiments\08_11_2023'
+# for f in os.listdir(mainpath):
+# 	df, head = read_forces_csv(os.path.join(mainpath, f), 21)
+# 	plot_forces(df,head)
+# 	df['+'.join(df.columns)] = df[df.columns].sum(axis=1)
+# 	df.columns = [f"{col} ({f.split('.')[0]})" for col in df.columns]
+# 	tot = pd.concat([tot, df], axis=1)
+# utils.plot_df_with_plotly(tot)
