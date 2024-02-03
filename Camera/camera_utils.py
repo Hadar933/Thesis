@@ -9,6 +9,7 @@ import matplotlib as mpl
 import numpy as np
 from pathlib import Path
 import re
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 # ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -182,6 +183,7 @@ def plot_trajectories(
 	mpl.use('TkAgg')
 	fig = plt.figure(figsize=(12, 12))
 	ax = fig.add_subplot(projection='3d')
+	colormap = mpl.colormaps['binary']
 	n_pts, m_pts_per_traj, _ = trajectory_3d.shape
 	ax.plot3D(trajectory_3d[0, :, 0], trajectory_3d[0, :, 1], trajectory_3d[0, :, 2], linewidth=2, label='tip')
 	ax.plot3D(trajectory_3d[1, :, 0], trajectory_3d[1, :, 1], trajectory_3d[1, :, 2], linewidth=2, label='bottom')
@@ -198,7 +200,12 @@ def plot_trajectories(
 			x = trajectory_3d[:, t, 0][triangle_points_order]
 			y = trajectory_3d[:, t, 1][triangle_points_order]
 			z = trajectory_3d[:, t, 2][triangle_points_order]
-			ax.plot3D(x, y, z, 'k-', linewidth=1)
+
+			# Calculate color based on the time increment
+			color = colormap(t / m_pts_per_traj)  # You can choose a different colormap
+
+			# Create a Poly3DCollection with gradient color
+			ax.add_collection3d(Poly3DCollection([list(zip(x, y, z))], color=color, edgecolor='k', linewidths=1))
 
 	if leading_edge_vec_jump > 0:
 		p0, p1, p2 = trajectory_3d
@@ -261,11 +268,11 @@ if __name__ == '__main__':
 	exp_date = '23_10_2023'
 	exp_name = '[F=7.501_A=M_PIdiv5.943_K=0.645]'
 	base_path = fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}"
-	plot_angles(
-		angles=np.load(f"{base_path}\\angles.npy")[:, 3000:8000],
-	)
+	# plot_angles(
+	# 	angles=np.load(f"{base_path}\\angles.npy")[:, 3000:8000],
+	# )
 	plot_trajectories(
-		trajectory_3d=np.load(fr"{base_path}\trajectories.npy")[:, 3000:8000, :],wing_plane_jmp=300
+		trajectory_3d=np.load(fr"{base_path}\trajectories.npy")[:, 2400:3400, :], wing_plane_jmp=60
 		# center_of_mass_point=np.vstack(
 		# 	pd.read_pickle(fr"{base_path}\merged_data_preprocessed_and_encoded.pkl")['center_of_mass'])
 	)
