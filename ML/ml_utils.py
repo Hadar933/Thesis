@@ -137,7 +137,7 @@ if __name__ == '__main__':
 			# "/home/hadar/Thesis/ML/saved_models/LTSFInformer[128, False, 5, 64, None, None, 0.05, 3, '3', 1, 64, 2, 'gelu', 2, 2, 3]_[prssm,T=128]_2024-01-06_12-46-52",
 
 			# ==== SEQ2SEQ:
-			# "/home/hadar/Thesis/ML/saved_models/Input(512, 256, 5)seq2seq[1,130,90,1,True,130,90,3]_[prssm,T=1]_2024-01-08_20-50-16",
+			"/home/hadar/Thesis/ML/saved_models/Input(512, 256, 5)seq2seq[1,130,90,1,True,130,90,3]_[prssm,T=1]_2024-01-08_20-50-16",
 			# "/home/hadar/Thesis/ML/saved_models/Input(512, 256, 5)seq2seq[16,70,130,1,True,70,130,3]_[prssm,T=16]_2024-01-08_22-12-53",
 			# "/home/hadar/Thesis/ML/saved_models/Input(512, 256, 5)seq2seq[32,120,120,1,True,120,120,3]_[prssm,T=32]_2024-01-08_01-03-14",
 			# "/home/hadar/Thesis/ML/saved_models/Input(512, 256, 5)seq2seq[64,120,120,1,True,120,120,3]_[prssm,T=64]_2024-01-08_06-17-06",

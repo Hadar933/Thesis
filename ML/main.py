@@ -1,9 +1,5 @@
 import os
-import json
 from typing import Literal
-
-from tqdm import tqdm
-
 from ML.Core.trainer import Trainer
 import torch
 from ML import ml_utils
@@ -13,7 +9,7 @@ if __name__ == '__main__':
     data: Literal['ours', 'prssm'] = 'ours'
     # mostly unchanged parameters:
     exp_time = '22_11_2023' if data == 'ours' else '10_10_2023'
-    train_percent = 0.85
+    train_percent = 0.75
     val_percent = 0.1
     intersect = 1
     n_epochs = 30
@@ -54,12 +50,12 @@ if __name__ == '__main__':
     feature_lags = [512]
     batch_sizes = [512]
     target_lags = [1]
-    embedding_sizes = [5, 10, 15, 20, 25, 30, 35, 40]
-    hidden_sizes = [10 * i for i in range(1, 13)]
+    embedding_sizes = [5 * i for i in range(1, 7)]
+    hidden_sizes = [10 * i for i in range(1, 7)]
     label_lens = [0]
     layers = [1]
     bidirs = [True]
-    dropouts = [0.05]
+    dropouts = [0.05, 0.10]
     activations = ['gelu']
     output_attentions = [False]
     embed_types = [3]
@@ -73,16 +69,25 @@ if __name__ == '__main__':
     fedformer_mode_select = ['random']
     fedformer_n_modes = [32]
     individual = [True, False]
+    use_adl = [False]
+    complexify = [False]
+    gate = [True, False]
+    multidim_fft = [True, False]
+    concat_adl = [False]
+    freq_thresholds = [125, 150, 175, 200]
     seq2seq_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(feature_lags=feature_lags, batch_size=batch_sizes),
-        model_args=dict(target_lags=target_lags, enc_embedding_size=[30], enc_hidden_size=[35],
-                        enc_num_layers=layers, enc_bidirectional=bidirs, dec_output_size=[output_size]),
+        model_args=dict(target_lags=target_lags, enc_embedding_size=embedding_sizes, enc_hidden_size=hidden_sizes,
+                        enc_num_layers=layers, enc_bidirectional=bidirs, dec_output_size=[output_size],
+                        use_adl=use_adl, concat_adl=concat_adl, complexify=complexify, gate=gate,
+                        multidim_fft=multidim_fft, dropout=dropouts),
         model_shared_pairs={'dec_hidden_size': 'enc_hidden_size', 'dec_embedding_size': 'enc_embedding_size'},
         model_args_key=model_args_key
     )
     transformer_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(batch_size=batch_sizes),
-        model_args=dict(feature_lags=feature_lags,target_lags=target_lags, label_len=label_lens, output_attention=output_attentions,
+        model_args=dict(feature_lags=feature_lags, target_lags=target_lags, label_len=label_lens,
+                        output_attention=output_attentions,
                         enc_in=[input_size], d_model=[16], dropout=dropouts, dec_in=[output_size],
                         embed_type=embed_types, factor=factors, e_layers=e_layers, activation=activations,
                         n_heads=n_heads, d_layers=d_layers, c_out=[output_size]),
@@ -129,7 +134,7 @@ if __name__ == '__main__':
     model_class_name = seq2seq_name  # CHANGE THIS
 
     for i, hyperparams in enumerate(used_hyperparams):
-        print('=' * 20 + f' Hyperparams iter #{i} ' + '=' * 20)
+        print('=' * 20 + f' Hyperparams iter #{i}/{len(used_hyperparams)} ' + '=' * 20)
         if 'feature_lags' in hyperparams:
             flags = hyperparams['feature_lags']
         else:
@@ -155,7 +160,7 @@ if __name__ == '__main__':
             model_class_name=model_class_name,
             model_args=hyperparams[model_args_key],
 
-            exp_name=f"ADLSigmoidWeightsMultiFFT[{data},T={tlags}",
+            exp_name=f"[{data},T={tlags}",
             optimizer_name=optimizer,
             criterion_name=criterion,
             patience=patience,

@@ -179,7 +179,14 @@ class Seq2seq(nn.Module):
             enc_bidirectional: bool,
             dec_embedding_size: int,
             dec_hidden_size: int,
-            dec_output_size: int
+            dec_output_size: int,
+            use_adl: bool = False,
+            concat_adl: bool = False,
+            complexify: bool = False,
+            gate: bool = False,
+            multidim_fft: bool = False,
+            freq_threshold: float = 200,
+            dropout: float = 0.1
     ):
         """
 
@@ -204,8 +211,13 @@ class Seq2seq(nn.Module):
         self.dec_embedding_size = enc_embedding_size
         self.dec_hidden_size = dec_hidden_size
         self.dec_output_size = dec_output_size
-        self.use_adl: bool = True
-        self.concat_adl: bool = False
+        self.use_adl = use_adl
+        self.concat_adl = concat_adl
+        self.complexify = complexify
+        self.gate=gate
+        self.multidim_fft = multidim_fft
+        self.freq_threshold = freq_threshold
+        self.dropout=dropout
 
         self.cast_input_to_dec_output = nn.Linear(
             in_features=self.input_size * 2 if self.concat_adl else self.input_size,
@@ -236,15 +248,17 @@ class Seq2seq(nn.Module):
         )
         if self.use_adl:
             self.adl1 = AdaptiveSpectrumLayer(
+                input_size=self.input_size,
                 history_size=self.feature_lags,
                 hidden_dim=self.enc_hidden_size,
                 sampling_rate=5000,
-                frequency_threshold=200,
-                complexify=False,
-                gate=True,
+                frequency_threshold=self.freq_threshold,
+                complexify=self.complexify,
+                gate=self.gate,
                 use_freqs=False,
-                dropout_rate=0.1,
-                multidim_fft=True
+                dropout_rate=self.dropout,
+                multidim_fft=self.multidim_fft,
+                use_layer_norm=False
             )
         self.output_size = self.batch_size, self.target_lag, dec_output_size
 
@@ -276,7 +290,7 @@ class Seq2seq(nn.Module):
             if self.concat_adl:
                 x = torch.cat((x, adaptive_spectrum), dim=-1)
             else:
-                x = x + adaptive_spectrum
+                x = adaptive_spectrum
         encoder_outputs, hidden = self.encoder(x)
         input = self.cast_input_to_dec_output(x[:, -1, :])
         for t in range(self.target_lag):
