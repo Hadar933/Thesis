@@ -2,7 +2,7 @@
 
 This repo contains all the code that was used for my thesis
 
-## <div align="center"> A Deep Inverse Aerodynamic Model, and its Application on Flapping-Wing Unmanned Aerial Vehicles </div>
+## <div align="center">A Deep Inverse dynamic Model, and its Application on Flapping-Wing Micro Aerial Vehicles </div>
 
 - **Camera**: Image processing for wing tracking in 3D and Euler angles extraction
 - **Forces**: Force sensors signal parser
