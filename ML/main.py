@@ -6,13 +6,12 @@ from ML import ml_utils
 from Utilities import utils
 
 if __name__ == '__main__':
-    data: Literal['ours', 'prssm'] = 'ours'
-    # mostly unchanged parameters:
-    exp_time = '22_11_2023' if data == 'ours' else '10_10_2023'
+    data_name: Literal['ours', 'prssm'] = 'prssm'
+    exp_time = '22_11_2023' if data_name == 'ours' else '10_10_2023'
     train_percent = 0.75
     val_percent = 0.1
     intersect = 1
-    n_epochs = 30
+    n_epochs = 100
     seed = 3407
     criterion = 'L1Loss'
     regularization_factor = 10
@@ -36,8 +35,8 @@ if __name__ == '__main__':
     ltsf_fedformer_name = os.path.join('LTSF', 'FedFormer')
 
     parent_dirname = r"E:\\Hadar\\experiments" if use_hard_drive else '../Results'
-    force_filename = 'f19+f23_list_clean.pt' if data == 'ours' else 'forces_prssm.pt'
-    kinematics_filename = 'k19+k23_list_clean.pt' if data == 'ours' else 'kinematics_prssm.pt'
+    force_filename = 'f19+f23_list_clean.pt' if data_name == 'ours' else 'forces_prssm.pt'
+    kinematics_filename = 'k19+k23_list_clean.pt' if data_name == 'ours' else 'kinematics_prssm.pt'
     forces_path = os.path.join(parent_dirname, exp_time, force_filename)
     kinematics_path = os.path.join(parent_dirname, exp_time, kinematics_filename)
     forces, kinematics = torch.load(forces_path), torch.load(kinematics_path)
@@ -47,15 +46,15 @@ if __name__ == '__main__':
         input_size, output_size = forces.shape[-1], kinematics.shape[-1]
 
     model_args_key = 'model_args'
-    feature_lags = [512]
+    feature_lags = [512 if data_name == 'ours' else 256]
     batch_sizes = [512]
     target_lags = [1]
-    embedding_sizes = [5 * i for i in range(1, 7)]
-    hidden_sizes = [10 * i for i in range(1, 7)]
+    embedding_sizes = [25]
+    hidden_sizes = [60]
     label_lens = [0]
     layers = [1]
-    bidirs = [True]
-    dropouts = [0.05, 0.10]
+    bidirs = [False]
+    dropouts = [0.1]
     activations = ['gelu']
     output_attentions = [False]
     embed_types = [3]
@@ -68,19 +67,22 @@ if __name__ == '__main__':
     fedformer_version = ['Fourier']
     fedformer_mode_select = ['random']
     fedformer_n_modes = [32]
-    individual = [True, False]
-    use_adl = [False]
+    individual = [False]
+    use_adl = [True]
     complexify = [False]
-    gate = [True, False]
-    multidim_fft = [True, False]
+    gate = [False, True]
+    multidim_fft = [False]
     concat_adl = [False]
-    freq_thresholds = [125, 150, 175, 200]
+    per_freq_layer = [True]
+    csd = [False]
+    freq_thresholds = [200]
     seq2seq_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(feature_lags=feature_lags, batch_size=batch_sizes),
         model_args=dict(target_lags=target_lags, enc_embedding_size=embedding_sizes, enc_hidden_size=hidden_sizes,
                         enc_num_layers=layers, enc_bidirectional=bidirs, dec_output_size=[output_size],
                         use_adl=use_adl, concat_adl=concat_adl, complexify=complexify, gate=gate,
-                        multidim_fft=multidim_fft, dropout=dropouts),
+                        multidim_fft=multidim_fft, dropout=dropouts, freq_threshold=freq_thresholds,
+                        per_freq_layer=per_freq_layer, cross_spectrum_density=csd),
         model_shared_pairs={'dec_hidden_size': 'enc_hidden_size', 'dec_embedding_size': 'enc_embedding_size'},
         model_args_key=model_args_key
     )
@@ -130,37 +132,30 @@ if __name__ == '__main__':
                         output_size=[output_size]),
         model_args_key=model_args_key
     )
+
     used_hyperparams = seq2seq_params  # CHANGE THIS
     model_class_name = seq2seq_name  # CHANGE THIS
 
-    for i, hyperparams in enumerate(used_hyperparams):
+    for i, hparams in enumerate(used_hyperparams):
         print('=' * 20 + f' Hyperparams iter #{i}/{len(used_hyperparams)} ' + '=' * 20)
-        if 'feature_lags' in hyperparams:
-            flags = hyperparams['feature_lags']
-        else:
-            flags = hyperparams[model_args_key]['feature_lags']
-        if 'target_lags' in hyperparams:
-            tlags = hyperparams['target_lags']
-        else:
-            tlags = hyperparams[model_args_key]['target_lags']
-        input_dim = (hyperparams['batch_size'], flags, input_size)
-        if model_class_name == seq2seq_name:
-            hyperparams[model_args_key]['input_dim'] = input_dim
+        f_lags = hparams['feature_lags'] if 'feature_lags' in hparams else hparams[model_args_key]['feature_lags']
+        t_lags = hparams['target_lags'] if 'target_lags' in hparams else hparams[model_args_key]['target_lags']
+        input_dim = (hparams['batch_size'], f_lags, input_size)
+        if model_class_name == seq2seq_name: hparams[model_args_key]['input_dim'] = input_dim
 
         trainer = Trainer(
+            exp_name=f"{'ADLFFTProjectWRelu' if hparams[model_args_key]['use_adl'] else ''}[{data_name},T={t_lags}",
+
             features_path=forces_path,
             targets_path=kinematics_path,
             train_percent=train_percent,
             val_percent=val_percent,
             feature_win=input_dim[1],
-            target_win=tlags,
+            target_win=t_lags,
             intersect=intersect,
-            batch_size=hyperparams['batch_size'],
-
+            batch_size=hparams['batch_size'],
             model_class_name=model_class_name,
-            model_args=hyperparams[model_args_key],
-
-            exp_name=f"[{data},T={tlags}",
+            model_args=hparams[model_args_key],
             optimizer_name=optimizer,
             criterion_name=criterion,
             patience=patience,
@@ -173,7 +168,7 @@ if __name__ == '__main__':
             targets_global_normalizer=targets_global_norm,
             flip_history=flip_history,
             regularization_factor=regularization_factor,
-            hyperparams=utils.flatten_dict(hyperparams)
+            hyperparams=utils.flatten_dict(hparams)
         )
         trainer.fit()
-        _, loss_df = trainer.predict('test', False)
+        _, loss_df = trainer.predict(data_name, f'test', False)

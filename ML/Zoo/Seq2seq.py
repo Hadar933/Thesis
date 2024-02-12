@@ -186,7 +186,9 @@ class Seq2seq(nn.Module):
             gate: bool = False,
             multidim_fft: bool = False,
             freq_threshold: float = 200,
-            dropout: float = 0.1
+            dropout: float = 0.1,
+            per_freq_layer: bool = True,
+            cross_spectrum_density: bool = False
     ):
         """
 
@@ -214,10 +216,12 @@ class Seq2seq(nn.Module):
         self.use_adl = use_adl
         self.concat_adl = concat_adl
         self.complexify = complexify
-        self.gate=gate
+        self.gate = gate
         self.multidim_fft = multidim_fft
         self.freq_threshold = freq_threshold
-        self.dropout=dropout
+        self.dropout = dropout
+        self.per_freq_layer = per_freq_layer
+        self.cross_spectrum_density = cross_spectrum_density
 
         self.cast_input_to_dec_output = nn.Linear(
             in_features=self.input_size * 2 if self.concat_adl else self.input_size,
@@ -258,7 +262,9 @@ class Seq2seq(nn.Module):
                 use_freqs=False,
                 dropout_rate=self.dropout,
                 multidim_fft=self.multidim_fft,
-                use_layer_norm=False
+                use_layer_norm=False,
+                per_freq_layer=self.per_freq_layer,
+                cross_spectrum_density=self.cross_spectrum_density,
             )
         self.output_size = self.batch_size, self.target_lag, dec_output_size
 
@@ -266,13 +272,22 @@ class Seq2seq(nn.Module):
         return (
             f'Input{self.input_dim}'
             f'seq2seq[{self.target_lag},'
-            f'{self.enc_embedding_size},'
-            f'{self.enc_hidden_size},'
-            f'{self.enc_num_layers},'
-            f'{self.enc_bidirectional},'
-            f'{self.dec_embedding_size},'
-            f'{self.dec_hidden_size},'
-            f'{self.dec_output_size}]'
+            f'eemb{self.enc_embedding_size},'
+            f'ehid{self.enc_hidden_size},'
+            f'nl{self.enc_num_layers},'
+            f'bi{self.enc_bidirectional},'
+            f'demb{self.dec_embedding_size},'
+            f'dhid{self.dec_hidden_size},'
+            f'out{self.dec_output_size}'
+            f'adl{self.use_adl},'
+            f'cat_adl{self.concat_adl},'
+            f'complex{self.complexify},'
+            f'gate{self.gate},'
+            f'multidimfft{self.multidim_fft},'
+            f'freq_thres{self.freq_threshold},'
+            f'drop{self.dropout},'
+            f'perfreq{self.per_freq_layer}'
+            f']'
         )
 
     def forward(
@@ -284,13 +299,14 @@ class Seq2seq(nn.Module):
         @return:
         """
         outputs = []
-        x = x + self.pos_emb(x)
+        pos_emb = self.pos_emb(x)
         if self.use_adl:
             adaptive_spectrum = self.adl1(x)
             if self.concat_adl:
                 x = torch.cat((x, adaptive_spectrum), dim=-1)
             else:
                 x = adaptive_spectrum
+        x = x + pos_emb
         encoder_outputs, hidden = self.encoder(x)
         input = self.cast_input_to_dec_output(x[:, -1, :])
         for t in range(self.target_lag):
