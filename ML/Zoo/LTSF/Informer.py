@@ -24,10 +24,10 @@ class Informer(nn.Module):
 	Informer with Propspare attention in O(LlogL) complexity
 	"""
 
-	def __init__(self, pred_len, label_len, output_attention, enc_in, d_model, dropout, dec_in, embed_type, factor,
-				 d_ff, e_layers, activation, n_heads, d_layers, c_out,distil, embed=None, freq=None):
+	def __init__(self, target_lags, label_len, output_attention, enc_in, d_model, dropout, dec_in, embed_type, factor,
+				 d_ff, e_layers, activation, n_heads, d_layers, c_out, distil, embed=None, freq=None):
 		super(Informer, self).__init__()
-		self.pred_len = pred_len
+		self.target_lags = target_lags
 		self.label_len = label_len
 		self.output_attention = output_attention
 		self.enc_in = enc_in
@@ -104,13 +104,13 @@ class Informer(nn.Module):
 		)
 
 	def __str__(self):
-		return f"LTSFInformer[{self.pred_len}, {self.output_attention}, {self.enc_in}, {self.d_model}, " \
+		return f"LTSFInformer[{self.target_lags}, {self.output_attention}, {self.enc_in}, {self.d_model}, " \
 			   f"{self.embed}, {self.freq}, {self.dropout}, {self.dec_in}, '{self.embed_type}', {self.factor}, " \
 			   f"{self.d_ff}, {self.e_layers}, '{self.activation}', {self.n_heads}, {self.d_layers}, {self.c_out}]"
 
 	def forward(self, x_enc,
 				x_mark_enc=None, x_mark_dec=None, enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
-		x_dec = torch.zeros(x_enc.shape[0], self.pred_len, self.c_out).to(x_enc.device)
+		x_dec = torch.zeros(x_enc.shape[0], self.target_lags, self.c_out).to(x_enc.device)
 
 		enc_out = self.enc_embedding(x_enc, x_mark_enc)
 		enc_out, attns = self.encoder(enc_out, attn_mask=enc_self_mask)
@@ -119,6 +119,6 @@ class Informer(nn.Module):
 		dec_out = self.decoder(dec_out, enc_out, x_mask=dec_self_mask, cross_mask=dec_enc_mask)
 
 		if self.output_attention:
-			return dec_out[:, -self.pred_len:, :], attns
+			return dec_out[:, -self.target_lags:, :], attns
 		else:
-			return dec_out[:, -self.pred_len:, :]  # [B, L, D]
+			return dec_out[:, -self.target_lags:, :]  # [B, L, D]

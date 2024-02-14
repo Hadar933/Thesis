@@ -5,7 +5,7 @@ from LTSFLinear.FEDformer.layers.Embed import DataEmbedding, DataEmbedding_wo_po
 	DataEmbedding_wo_temp
 from LTSFLinear.FEDformer.layers.AutoCorrelation import AutoCorrelationLayer
 from LTSFLinear.FEDformer.layers.FourierCorrelation import FourierBlock, FourierCrossAttention
-from LTSFLinear.FEDformer.layers.MultiWaveletCorrelation import MultiWaveletCross, MultiWaveletTransform
+# from LTSFLinear.FEDformer.layers.MultiWaveletCorrelation import MultiWaveletCross, MultiWaveletTransform
 from LTSFLinear.FEDformer.layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, \
 	series_decomp, series_decomp_multi
 
@@ -89,16 +89,17 @@ class FedFormer(nn.Module):
 													   self.dropout)
 
 		if self.version == 'Wavelets':
-			encoder_self_att = MultiWaveletTransform(ich=self.d_model, L=self.L, base=self.base)
-			decoder_self_att = MultiWaveletTransform(ich=self.d_model, L=self.L, base=self.base)
-			decoder_cross_att = MultiWaveletCross(in_channels=self.d_model,
-												  out_channels=self.d_model,
-												  seq_len_q=self.feature_lags // 2 + self.pred_len,
-												  seq_len_kv=self.feature_lags,
-												  modes=self.modes,
-												  ich=self.d_model,
-												  base=self.base,
-												  activation=self.cross_activation)
+			pass
+			# encoder_self_att = MultiWaveletTransform(ich=self.d_model, L=self.L, base=self.base)
+			# decoder_self_att = MultiWaveletTransform(ich=self.d_model, L=self.L, base=self.base)
+			# decoder_cross_att = MultiWaveletCross(in_channels=self.d_model,
+			# 									  out_channels=self.d_model,
+			# 									  seq_len_q=self.feature_lags // 2 + self.pred_len,
+			# 									  seq_len_kv=self.feature_lags,
+			# 									  modes=self.modes,
+			# 									  ich=self.d_model,
+			# 									  base=self.base,
+			# 									  activation=self.cross_activation)
 		else:
 			encoder_self_att = FourierBlock(in_channels=self.d_model,
 											out_channels=self.d_model,
