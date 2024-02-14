@@ -6,12 +6,12 @@ from ML import ml_utils
 from Utilities import utils
 
 if __name__ == '__main__':
-    data_name: Literal['ours', 'prssm'] = 'prssm'
+    data_name: Literal['ours', 'prssm'] = 'ours'
     exp_time = '22_11_2023' if data_name == 'ours' else '10_10_2023'
     train_percent = 0.75
     val_percent = 0.1
     intersect = 1
-    n_epochs = 100
+    n_epochs = 30
     seed = 3407
     criterion = 'L1Loss'
     regularization_factor = 10
@@ -29,6 +29,7 @@ if __name__ == '__main__':
     mlp_name = 'Mlp'
     rnn_name = 'Rnn'
     ltsf_linear_name = os.path.join('LTSF', 'Linear')
+    ltsf_nlinear_name = os.path.join('LTSF', 'NLinear')
     ltsf_informer_name = os.path.join('LTSF', 'Informer')
     ltsf_transformer_name = os.path.join('LTSF', 'Transformer')
     ltsf_autoformer_name = os.path.join('LTSF', 'Autoformer')
@@ -68,13 +69,13 @@ if __name__ == '__main__':
     fedformer_mode_select = ['random']
     fedformer_n_modes = [32]
     individual = [False]
-    use_adl = [True]
+    use_adl = [False]
     complexify = [False]
     gate = [False, True]
     multidim_fft = [False]
     concat_adl = [False]
     per_freq_layer = [True]
-    csd = [False]
+    csd = [True]
     freq_thresholds = [200]
     seq2seq_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(feature_lags=feature_lags, batch_size=batch_sizes),
@@ -90,15 +91,15 @@ if __name__ == '__main__':
         global_args=dict(batch_size=batch_sizes),
         model_args=dict(feature_lags=feature_lags, target_lags=target_lags, label_len=label_lens,
                         output_attention=output_attentions,
-                        enc_in=[input_size], d_model=[16], dropout=dropouts, dec_in=[output_size],
+                        enc_in=[input_size], d_model=[16], dropout=[0.05], dec_in=[output_size],
                         embed_type=embed_types, factor=factors, e_layers=e_layers, activation=activations,
-                        n_heads=n_heads, d_layers=d_layers, c_out=[output_size]),
+                        n_heads=n_heads, d_layers=[1], c_out=[output_size]),
         model_shared_pairs={'d_ff': 'd_model'},
         model_args_key=model_args_key
     )
     informer_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(feature_lags=feature_lags, batch_size=batch_sizes),
-        model_args=dict(pred_len=target_lags, label_len=label_lens, output_attention=output_attentions,
+        model_args=dict(target_lags=target_lags, label_len=label_lens, output_attention=output_attentions,
                         enc_in=[input_size], d_model=hidden_sizes, dropout=dropouts, dec_in=[output_size],
                         embed_type=embed_types, factor=factors, e_layers=e_layers, activation=activations,
                         n_heads=n_heads, d_layers=d_layers, c_out=[output_size], distil=distil),
@@ -106,10 +107,10 @@ if __name__ == '__main__':
         model_args_key=model_args_key
     )
     autoformer_params = ml_utils.generate_hyperparam_combinations(
-        global_args=dict(feature_lag=feature_lags, batch_size=batch_sizes),
-        model_args=dict(pred_len=target_lags, label_len=label_lens, output_attention=output_attentions,
-                        enc_in=[input_size], d_model=hidden_sizes, dropout=dropouts, dec_in=[input_size],
-                        embed_type=embed_types, factor=factors, e_layers=e_layers, activation=activations,
+        global_args=dict(feature_lags=feature_lags, batch_size=batch_sizes),
+        model_args=dict(target_lags=target_lags, label_len=label_lens, output_attention=output_attentions,
+                        enc_in=[input_size], d_model=[8], dropout=[0.05], dec_in=[input_size],
+                        embed_type=embed_types, factor=factors, e_layers=[2], activation=activations,
                         n_heads=n_heads, d_layers=d_layers, c_out=[input_size], moving_avg=moving_avg,
                         output_size=[output_size]),
         model_shared_pairs={'d_ff': 'd_model'},
@@ -118,9 +119,9 @@ if __name__ == '__main__':
     fedformer_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(batch_size=batch_sizes),
         model_args=dict(feature_lags=feature_lags, target_lags=target_lags, label_len=label_lens,
-                        output_attention=output_attentions, enc_in=[input_size], d_model=hidden_sizes, dropout=dropouts,
-                        dec_in=[input_size], embed_type=embed_types, e_layers=e_layers, activation=activations,
-                        n_heads=[8], d_layers=d_layers, c_out=[input_size], moving_avg=moving_avg,
+                        output_attention=output_attentions, enc_in=[input_size], d_model=[40], dropout=[0.05],
+                        dec_in=[input_size], embed_type=embed_types, e_layers=[1], activation=activations,
+                        n_heads=[8], d_layers=[2], c_out=[input_size], moving_avg=moving_avg,
                         version=fedformer_version, mode_select=fedformer_mode_select, modes=fedformer_n_modes,
                         output_size=[output_size]),
         model_shared_pairs={'d_ff': 'd_model'},
@@ -128,13 +129,19 @@ if __name__ == '__main__':
     )
     linear_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(batch_size=batch_sizes),
-        model_args=dict(seq_len=feature_lags, pred_len=target_lags, channels=[input_size], individual=individual,
+        model_args=dict(feature_lags=feature_lags, target_lags=target_lags, n_features=[input_size], individual=individual,
+                        output_size=[output_size]),
+        model_args_key=model_args_key
+    )
+    nlinear_params = ml_utils.generate_hyperparam_combinations(
+        global_args=dict(batch_size=batch_sizes),
+        model_args=dict(feature_lags=feature_lags, target_lags=target_lags, n_features=[input_size], individual=individual,
                         output_size=[output_size]),
         model_args_key=model_args_key
     )
 
-    used_hyperparams = seq2seq_params  # CHANGE THIS
-    model_class_name = seq2seq_name  # CHANGE THIS
+    used_hyperparams = nlinear_params  # CHANGE THIS
+    model_class_name = ltsf_nlinear_name  # CHANGE THIS
 
     for i, hparams in enumerate(used_hyperparams):
         print('=' * 20 + f' Hyperparams iter #{i}/{len(used_hyperparams)} ' + '=' * 20)
@@ -144,7 +151,7 @@ if __name__ == '__main__':
         if model_class_name == seq2seq_name: hparams[model_args_key]['input_dim'] = input_dim
 
         trainer = Trainer(
-            exp_name=f"{'ADLFFTProjectWRelu' if hparams[model_args_key]['use_adl'] else ''}[{data_name},T={t_lags}",
+            exp_name=f"{'ADLCsdAllMatrix' if 'use_adl' in hparams[model_args_key] and hparams[model_args_key]['use_adl'] else ''}[{data_name},T={t_lags}",
 
             features_path=forces_path,
             targets_path=kinematics_path,
