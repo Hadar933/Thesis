@@ -100,7 +100,7 @@ class Trainer:
         logger.add(os.path.join(self.model_dir, "trainer.log"), level="INFO", rotation="500 MB", compression="zip")
         logger.info(f"\nHyperparams:\n {json.dumps(hyperparams, sort_keys=True, indent=4)}")
         logger.info(
-            f"\nModel:\n {torchinfo.summary(self.model, input_size=(self.batch_size, self.feature_win, self.features[0].shape[-1]),depth=5,verbose=0)}")
+            f"\nModel:\n {torchinfo.summary(self.model, input_size=(self.batch_size, self.feature_win, self.features[0].shape[-1]), depth=5, verbose=0)}")
 
     def _handle_tensor_types_and_flip_history(self, flip_history: bool) -> None:
         """
@@ -190,6 +190,7 @@ class Trainer:
             self.optimizer.step()
             tqdm_loader.set_postfix({'Train Loss': f"{loss.item():.5f}",
                                      'RAM_%': psutil.virtual_memory().percent,
+                                     'GPU_%': utils.get_gpu_usage_percentage(),
                                      'Epoch': epoch})
         total_loss /= len(self.train_loader)
         return total_loss
@@ -299,7 +300,8 @@ class Trainer:
                     curr_inputs = pd.DataFrame(
                         self.features_normalizer.inverse_transform(
                             self.data_dict[split]['all_datasets'][j].normalized_features.squeeze(0)
-                        ), columns=['F1', 'F2', 'F3', 'F4'] if dataset_name == 'ours' else ['Fx', 'Fy', 'Fz', 'My', 'Mz']
+                        ),
+                        columns=['F1', 'F2', 'F3', 'F4'] if dataset_name == 'ours' else ['Fx', 'Fy', 'Fz', 'My', 'Mz']
                     )
                     merged_df = merge_helper(curr_inputs, 'input', j)
                 curr_preds, curr_trues = [], []
