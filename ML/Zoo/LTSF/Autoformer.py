@@ -26,10 +26,10 @@ class Autoformer(nn.Module):
 	with inherent O(LlogL) complexity
 	"""
 
-	def __init__(self, pred_len, label_len, output_attention, enc_in, d_model, dropout, dec_in, embed_type, factor,
-				 d_ff, e_layers, activation, n_heads, d_layers, c_out, moving_avg,output_size, embed=None, freq=None):
+	def __init__(self, target_lags, label_len, output_attention, enc_in, d_model, dropout, dec_in, embed_type, factor,
+				 d_ff, e_layers, activation, n_heads, d_layers, c_out, moving_avg, output_size, embed=None, freq=None):
 		super(Autoformer, self).__init__()
-		self.pred_len = pred_len
+		self.target_lags = target_lags
 		self.label_len = label_len
 		self.output_attention = output_attention
 		self.enc_in = enc_in
@@ -118,15 +118,15 @@ class Autoformer(nn.Module):
 
 
 	def __str__(self):
-		return f"LTSFAutoFormer[{self.pred_len}, {self.output_attention}, {self.enc_in}, {self.d_model}, " \
+		return f"LTSFAutoFormer[{self.target_lags}, {self.output_attention}, {self.enc_in}, {self.d_model}, " \
 			   f"{self.embed}, {self.freq}, {self.dropout}, {self.dec_in}, '{self.embed_type}', {self.factor}, " \
 			   f"{self.d_ff}, {self.e_layers}, '{self.activation}', {self.n_heads}, {self.d_layers}, {self.c_out}, {self.moving_avg}]"
 
 	def forward(self, x_enc,
 				x_mark_enc=None, x_mark_dec=None, enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
 		# decomp init
-		mean = torch.mean(x_enc, dim=1).unsqueeze(1).repeat(1, self.pred_len, 1)
-		zeros = torch.zeros([x_enc.shape[0], self.pred_len, x_enc.shape[-1]], device=x_enc.device)
+		mean = torch.mean(x_enc, dim=1).unsqueeze(1).repeat(1, self.target_lags, 1)
+		zeros = torch.zeros([x_enc.shape[0], self.target_lags, x_enc.shape[-1]], device=x_enc.device)
 		seasonal_init, trend_init = self.decomp(x_enc)
 		# decoder input
 		trend_init = torch.cat([trend_init[:, -self.label_len:, :], mean], dim=1)
@@ -142,6 +142,6 @@ class Autoformer(nn.Module):
 		dec_out = trend_part + seasonal_part
 
 		if self.output_attention:
-			return dec_out[:, -self.pred_len:, :], attns
+			return dec_out[:, -self.target_lags:, :], attns
 		else:
-			return dec_out[:, -self.pred_len:, :]  # [B, L, D]
+			return dec_out[:, -self.target_lags:, :]  # [B, L, D]
