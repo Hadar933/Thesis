@@ -165,11 +165,11 @@ class AdaptiveSpectrumLayer(nn.Module):
                 nn.Linear(self.n_frequencies * self.hidden_dim, self.n_frequencies)
             )
         fft_projection_backbone = nn.Sequential(
-                    nn.Linear(self.n_fourier_features, self.hidden_dim),
-                    self.relu,
-                    # nn.Linear(self.hidden_dim, self.hidden_dim),
-                    # self.relu
-                )
+            nn.Linear(self.n_fourier_features, self.hidden_dim),
+            self.relu,
+            # nn.Linear(self.hidden_dim, self.hidden_dim),
+            # self.relu
+        )
         if self.per_freq_layer:
             self.fft_projection = nn.ModuleList([
                 # for each frequency, we project features from fourier (like magnitude, angle,...)
@@ -187,6 +187,9 @@ class AdaptiveSpectrumLayer(nn.Module):
             self.layer_norm = nn.LayerNorm(self.input_size)
         if self.cross_spectral_density:
             self.csd = CrossSpectralDensity(self.input_size, self.n_frequencies, self.time_axis)
+
+        self.fft_weights = None  # saving last fft weights for visualization
+        self.fft_magnitude = None # saving last fft magnitude value for visualization
 
     def _frequencies_to_use(self) -> int:
         """
@@ -210,6 +213,8 @@ class AdaptiveSpectrumLayer(nn.Module):
             csd = self.csd(x)
             fft = fft + csd
         magnitude, angle = torch.abs(fft), torch.angle(fft)  # (B,n_freqs,F), (B,n_freqs,F)
+        self.fft_magnitude = magnitude
+
         fourier_features = torch.stack([magnitude, torch.sin(angle), torch.cos(angle)], dim=-1)  # (B,n_freqs,F,3)
         if self.multidim_fft:
             fftn = torch.fft.rfftn(x, dim=self.time_axis)[:, :self.n_frequencies, :]  # (B,n_freqs,F)
@@ -243,6 +248,7 @@ class AdaptiveSpectrumLayer(nn.Module):
             weighted_fft = w * new_fft + (1 - w) * fft  # (B,n_frequencies,F)
         else:
             weighted_fft = fft * weights.squeeze(1).permute(0, 2, 1)  # (B,n_frequencies,F)
+        self.fft_weights = weights.squeeze(1).permute(0, 2, 1)
         weighted_fft = torch.nn.functional.pad(
             input=weighted_fft,
             pad=(0, 0, 0, (self.history_size // 2 + 1) - self.n_frequencies, 0, 0)
