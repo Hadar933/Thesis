@@ -6,7 +6,7 @@ from ML import ml_utils
 from Utilities import utils
 
 if __name__ == '__main__':
-    data_name: Literal['ours', 'prssm'] = 'ours'
+    data_name: Literal['ours', 'prssm'] = 'prssm'
     exp_time = '22_11_2023' if data_name == 'ours' else '10_10_2023'
     train_percent = 0.75
     val_percent = 0.1
@@ -50,8 +50,8 @@ if __name__ == '__main__':
     feature_lags = [512 if data_name == 'ours' else 256]
     batch_sizes = [512]
     target_lags = [1]
-    embedding_sizes = [25]
-    hidden_sizes = [60]
+    embedding_sizes = [5, 10, 15, 20, 25, 30, 35, 40]
+    hidden_sizes = [40, 50, 60, 70, 80, 90, 100, 110]
     label_lens = [0]
     layers = [1]
     bidirs = [False]
@@ -69,14 +69,14 @@ if __name__ == '__main__':
     fedformer_mode_select = ['random']
     fedformer_n_modes = [32]
     individual = [False]
-    use_adl = [False]
+    use_adl = [True]
     complexify = [False]
-    gate = [False, True]
+    gate = [True]
     multidim_fft = [False]
     concat_adl = [False]
-    per_freq_layer = [True]
-    csd = [True]
-    freq_thresholds = [200]
+    per_freq_layer = [True, False]
+    csd = [False]
+    freq_thresholds = [190, 200, 210]
     seq2seq_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(feature_lags=feature_lags, batch_size=batch_sizes),
         model_args=dict(target_lags=target_lags, enc_embedding_size=embedding_sizes, enc_hidden_size=hidden_sizes,
@@ -129,19 +129,21 @@ if __name__ == '__main__':
     )
     linear_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(batch_size=batch_sizes),
-        model_args=dict(feature_lags=feature_lags, target_lags=target_lags, n_features=[input_size], individual=individual,
+        model_args=dict(feature_lags=feature_lags, target_lags=target_lags, n_features=[input_size],
+                        individual=individual,
                         output_size=[output_size]),
         model_args_key=model_args_key
     )
     nlinear_params = ml_utils.generate_hyperparam_combinations(
         global_args=dict(batch_size=batch_sizes),
-        model_args=dict(feature_lags=feature_lags, target_lags=target_lags, n_features=[input_size], individual=individual,
+        model_args=dict(feature_lags=feature_lags, target_lags=target_lags, n_features=[input_size],
+                        individual=individual,
                         output_size=[output_size]),
         model_args_key=model_args_key
     )
 
-    used_hyperparams = nlinear_params  # CHANGE THIS
-    model_class_name = ltsf_nlinear_name  # CHANGE THIS
+    used_hyperparams = seq2seq_params  # CHANGE THIS
+    model_class_name = seq2seq_name  # CHANGE THIS
 
     for i, hparams in enumerate(used_hyperparams):
         print('=' * 20 + f' Hyperparams iter #{i}/{len(used_hyperparams)} ' + '=' * 20)
@@ -151,7 +153,7 @@ if __name__ == '__main__':
         if model_class_name == seq2seq_name: hparams[model_args_key]['input_dim'] = input_dim
 
         trainer = Trainer(
-            exp_name=f"{'ADLCsdAllMatrix' if 'use_adl' in hparams[model_args_key] and hparams[model_args_key]['use_adl'] else ''}[{data_name},T={t_lags}",
+            exp_name=f"{'ADL' if 'use_adl' in hparams[model_args_key] and hparams[model_args_key]['use_adl'] else ''}[{data_name},T={t_lags}",
 
             features_path=forces_path,
             targets_path=kinematics_path,
