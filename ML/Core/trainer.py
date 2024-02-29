@@ -263,13 +263,6 @@ class Trainer:
             }
         )
 
-    # fit_info = {
-    # 	"early_stopping": self._early_stopping,
-    # 	"best_val_loss": self._best_val_loss.item(),
-    # 	"best_model_path": self.best_model_path
-    # }
-    # utils.update_json(self.info_path, fit_info)
-
     def predict(
             self,
             dataset_name: Literal['ours', 'prssm'],
