@@ -2,7 +2,6 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-import torch
 from scipy import special
 from loguru import logger
 from scipy import signal

@@ -62,6 +62,9 @@ def get_angles(
             cam_cropping_file=cam_cropping_file,
             add_manual_crop=add_manual_crop
         )
+        # randomly add either +1 or -1 to every entry, to mimic pixel noise:
+
+
         trajectories_2d_dict[cam_num] = trajectory_2d
 
     # making sure the trajectory lengths match (as we return in case of not identifying all points on the wing):
