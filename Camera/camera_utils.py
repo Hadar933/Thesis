@@ -1,6 +1,7 @@
 from typing import Union, Optional
 import matplotlib.pyplot as plt
 from Camera import camera_gui
+from matplotlib import animation
 import os
 import cv2
 from tqdm import tqdm
@@ -10,6 +11,7 @@ import numpy as np
 from pathlib import Path
 import re
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import matplotlib
 
 
 # ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -17,19 +19,25 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 # ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
 
-def images2vid(image_folder, output_file, fps):
+def images2vid(image_folder, output_file, fps, start=None, end=None, crop_with_GUI=False):
 	""" takes in a directory of images and converts them to a video with desired fps """
-	y, x, h, w = camera_gui.get_rectangle_coordinates(os.path.join(image_folder, 'Img000001.jpg'))
+	if crop_with_GUI:
+		y, x, h, w = camera_gui.get_rectangle_coordinates(os.path.join(image_folder, '000001.jpg'))
 	images = [img for img in os.listdir(image_folder) if img.endswith(".jpg")]
-	frame = crop(cv2.imread(os.path.join(image_folder, images[0])), y, x, h, w)
+	if start and end:
+		images = images[start:end]
+	frame = cv2.imread(os.path.join(image_folder, images[0]))
+	if crop_with_GUI:
+		frame = crop(frame, y, x, h, w)
 	height, width, _ = frame.shape
 	fourcc = cv2.VideoWriter_fourcc(*"mp4v")
 	video = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
 
-	for i, image in enumerate(images):
-		print(f"Converting to mp4 [{i}/{len(images)}]...", end='\r')
+	for image in tqdm(images, desc='Converting to mp4', unit='frames'):
 		image_path = os.path.join(image_folder, image)
-		frame = crop(cv2.imread(image_path), y, x, h, w)
+		frame = cv2.imread(image_path)
+		if crop_with_GUI:
+			frame = crop(frame, y, x, h, w)
 		video.write(frame)
 	cv2.destroyAllWindows()
 	video.release()
@@ -222,6 +230,45 @@ def plot_trajectories(
 	plt.show()
 
 
+def trajectory_video(trajectory_3d: np.ndarray,interval):
+	matplotlib.use('WebAgg')
+	fig = plt.figure()
+	ax = fig.add_subplot(projection='3d')
+
+	def update(num, data, lines):
+		for i, line in enumerate(lines):
+			line.set_data(data[i][:2, :num])
+			line.set_3d_properties(data[i][2, :num])
+
+	# N = trajectory_3d.shape[1]
+	N = 100
+	num_trajectories = trajectory_3d.shape[0]
+	data = [trajectory_3d[i, :, :].T for i in range(num_trajectories)]
+	lines = [ax.plot(data[i][0, 0:1], data[i][1, 0:1], data[i][2, 0:1])[0] for i in range(num_trajectories)]
+
+	x_max = max(data[i].max(axis=1)[0] for i in range(num_trajectories))
+	y_max = max(data[i].max(axis=1)[1] for i in range(num_trajectories))
+	z_max = max(data[i].max(axis=1)[2] for i in range(num_trajectories))
+	x_min = min(data[i].min(axis=1)[0] for i in range(num_trajectories))
+	y_min = min(data[i].min(axis=1)[1] for i in range(num_trajectories))
+	z_min = min(data[i].min(axis=1)[2] for i in range(num_trajectories))
+
+	# Setting the axes properties
+	ax.set_xlim3d([x_min, x_max])
+	ax.set_xlabel('x [mm]')
+	ax.set_ylim3d([y_min, y_max])
+	ax.set_ylabel('y [mm]')
+	ax.set_zlim3d([z_min, z_max])
+	ax.set_zlabel('z [mm]')
+
+	ax.view_init(elev=-80, azim=-90)  # Set the view angle
+	plt.axis('equal')  # Ensure equal aspect ratio
+
+	ani = animation.FuncAnimation(fig, update, N, fargs=(data, lines), interval=interval, blit=False)
+	ani.save('traj.gif')
+	# plt.show()
+
+
 def plot_angles(
 		angles: np.ndarray,
 		n_samples: Optional[int] = None,
@@ -266,13 +313,21 @@ def copy_keypoint(original_keypoint: cv2.KeyPoint):
 
 if __name__ == '__main__':
 	exp_date = '23_10_2023'
-	exp_name = '[F=7.501_A=M_PIdiv5.943_K=0.645]'
-	base_path = fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}"
-	# plot_angles(
-	# 	angles=np.load(f"{base_path}\\angles.npy")[:, 3000:8000],
-	# )
+	exp_name = '[F=8.078_A=M_PIdiv5.062_K=0.8]'
+	results_dir = fr"E:\Hadar\experiments\{exp_date}\results\{exp_name}"
+	raw_cam2dir = fr"E:\Hadar\experiments\{exp_date}\cam2\Photos{exp_name}"
+	raw_cam3dir = fr"E:\Hadar\experiments\{exp_date}\cam3\Photos{exp_name}"
+	start, end, fps = 3000, 5200, 120
+	trajectory_3d = np.load(fr"{results_dir}\trajectories.npy")[:, start:end, :]
+	trajectory_video(trajectory_3d,fps)
+	plot_angles(
+		angles=np.load(f"{results_dir}\\angles.npy")[:, start:end],
+	)
 	plot_trajectories(
-		trajectory_3d=np.load(fr"{base_path}\trajectories.npy")[:, 2400:3400, :], wing_plane_jmp=60
+		trajectory_3d=trajectory_3d, wing_plane_jmp=100
 		# center_of_mass_point=np.vstack(
 		# 	pd.read_pickle(fr"{base_path}\merged_data_preprocessed_and_encoded.pkl")['center_of_mass'])
 	)
+	if input('continue? [y/n]') == 'y':
+		images2vid(raw_cam2dir, r'G:\My Drive\Master\Lab\figures_for_thesis\cam2vid.mp4', fps, start, end)
+		images2vid(raw_cam3dir, r'G:\My Drive\Master\Lab\figures_for_thesis\cam3vid.mp4', fps, start, end)
